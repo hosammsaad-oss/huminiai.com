@@ -1,137 +1,160 @@
-import 'dart:convert';
-import 'dart:typed_data';
+// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:humini_ai/providers/chat_provider.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import '../providers/chat_provider.dart';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
-  @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class HomeScreen extends ConsumerWidget {
   final TextEditingController _controller = TextEditingController();
-  Uint8List? _webImage;
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50); // تقليل الجودة لتجنب خطأ الحجم
-    if (image != null) {
-      final bytes = await image.readAsBytes();
-      setState(() => _webImage = bytes);
-    }
-  }
-
-  void _send() {
-    if (_controller.text.isNotEmpty || _webImage != null) {
-      ref.read(chatProvider.notifier).sendMessage(_controller.text, imageBytes: _webImage);
-      _controller.clear();
-      setState(() => _webImage = null);
-    }
-  }
+  HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final messages = ref.watch(chatProvider);
-    final isLoading = ref.watch(chatProvider.notifier).isLoading;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chatMessages = ref.watch(chatProvider);
+    final chatNotifier = ref.read(chatProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: Color(0xFFF8F9FB), // لون خلفية هادئ واحترافي
       appBar: AppBar(
-        title: const Text("Humini AI", style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.deepPurpleAccent,
+              child: Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+            ),
+            SizedBox(width: 12),
+            Text("Humini AI", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ],
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => ref.read(chatProvider.notifier).clearChat())
+          IconButton(
+            icon: Icon(Icons.delete_sweep_outlined, color: Colors.grey),
+            onPressed: () => chatNotifier.clearChat(),
+          ),
         ],
       ),
       body: Column(
         children: [
-          Expanded(child: messages.isEmpty ? _buildWelcome() : _buildChatList(messages)),
-          if (isLoading) _buildLoading(),
-          if (_webImage != null) _buildPreview(),
-          _buildInput(),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              itemCount: chatMessages.length,
+              itemBuilder: (context, index) {
+                final message = chatMessages[index];
+                return _buildChatBubble(message);
+              },
+            ),
+          ),
+          if (chatNotifier.isLoading)
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: LinearProgressIndicator(backgroundColor: Colors.transparent, color: Colors.deepPurpleAccent),
+            ),
+          _buildInputArea(chatNotifier),
         ],
       ),
     );
   }
 
-  Widget _buildWelcome() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    const Icon(Icons.forum_outlined, size: 80, color: Colors.deepPurple),
-    const SizedBox(height: 16),
-    Text("مرحباً بك في هوميني!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-    const Text("اسألني أي شيء أو أرسل صورة لتحليلها", style: TextStyle(color: Colors.grey)),
-  ]));
-
-  Widget _buildChatList(List<ChatMessage> messages) => ListView.builder(
-    padding: const EdgeInsets.all(15),
-    itemCount: messages.length,
-    itemBuilder: (context, i) {
-      final m = messages[i];
-      return Align(
-        alignment: m.isUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: Column(crossAxisAlignment: m.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start, children: [
-          if (m.base64Image != null) 
-            Container(
-              margin: const EdgeInsets.only(bottom: 5), 
-              child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.memory(base64Decode(m.base64Image!), width: 220))
-            ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 15),
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-            decoration: BoxDecoration(
-              color: m.isUser ? Colors.deepPurple : Colors.white,
-              borderRadius: BorderRadius.circular(18).copyWith(
-                bottomRight: m.isUser ? Radius.zero : const Radius.circular(18),
-                bottomLeft: m.isUser ? const Radius.circular(18) : Radius.zero,
+  Widget _buildChatBubble(ChatMessage message) {
+    return Align(
+      alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12, left: message.isUser ? 50 : 0, right: message.isUser ? 0 : 50),
+        padding: EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: message.isUser ? Colors.deepPurpleAccent : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+            bottomLeft: Radius.circular(message.isUser ? 20 : 0),
+            bottomRight: Radius.circular(message.isUser ? 0 : 20),
+          ),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (message.base64Image != null)
+              Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(Uint8List.fromList(List<int>.from(message.base64Image!.codeUnits))), // تبسيط للعرض
+                ),
               ),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+            Text(
+              message.text,
+              style: TextStyle(
+                color: message.isUser ? Colors.white : Colors.black87,
+                fontSize: 16,
+                height: 1.4,
+              ),
             ),
-            child: MarkdownBody(
-              data: m.text, 
-              styleSheet: MarkdownStyleSheet(p: TextStyle(color: m.isUser ? Colors.white : Colors.black87, fontSize: 16))
-            ),
-          )
-        ]),
-      );
-    }
-  );
-
-  Widget _buildLoading() => Padding(padding: const EdgeInsets.all(12), child: Row(children: [
-    const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepPurple)),
-    const SizedBox(width: 12),
-    Text("جاري معالجة طلبك...", style: TextStyle(color: Colors.grey.shade600))
-  ]));
-
-  Widget _buildPreview() => Container(padding: const EdgeInsets.all(12), color: Colors.white, child: Row(children: [
-    ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.memory(_webImage!, width: 45, height: 45, fit: BoxFit.cover)),
-    const SizedBox(width: 12),
-    const Text("صورة جاهزة للإرسال"),
-    const Spacer(),
-    IconButton(icon: const Icon(Icons.cancel, color: Colors.red), onPressed: () => setState(() => _webImage = null))
-  ]));
-
-  Widget _buildInput() => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-    decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.black12))),
-    child: SafeArea(child: Row(children: [
-      IconButton(icon: const Icon(Icons.add_photo_alternate_outlined, color: Colors.deepPurple, size: 28), onPressed: _pickImage),
-      Expanded(child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(25)),
-        child: TextField(controller: _controller, decoration: const InputDecoration(hintText: "اسأل هوميني...", border: InputBorder.none), onSubmitted: (_) => _send()),
-      )),
-      const SizedBox(width: 8),
-      CircleAvatar(
-        backgroundColor: Colors.deepPurple,
-        child: IconButton(icon: const Icon(Icons.send, color: Colors.white, size: 20), onPressed: _send),
+          ],
+        ),
       ),
-    ])),
-  );
+    );
+  }
+
+  Widget _buildInputArea(ChatNotifier notifier) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.image_outlined, color: Colors.deepPurpleAccent),
+              onPressed: () async {
+                final picker = ImagePicker();
+                final image = await picker.pickImage(source: ImageSource.gallery);
+                if (image != null) {
+                  final bytes = await image.readAsBytes();
+                  notifier.sendMessage("", imageBytes: bytes);
+                }
+              },
+            ),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                decoration: InputDecoration(
+                  hintText: "كيف يمكن لـ Humini مساعدتك؟",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Color(0xFFF1F3F6),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+              ),
+            ),
+            SizedBox(width: 8),
+            CircleAvatar(
+              backgroundColor: Colors.deepPurpleAccent,
+              child: IconButton(
+                icon: Icon(Icons.send, color: Colors.white, size: 20),
+                onPressed: () {
+                  if (_controller.text.isNotEmpty) {
+                    notifier.sendMessage(_controller.text);
+                    _controller.clear();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

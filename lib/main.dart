@@ -28,7 +28,7 @@ class HuminiApp extends StatelessWidget {
         colorSchemeSeed: Colors.deepPurple,
       ),
       // الدخول مباشرة لصفحة الهوم بدون فحص تسجيل الدخول
-      home: const HomeScreen(), 
+      home: HomeScreen(), 
     );
   }
 }
