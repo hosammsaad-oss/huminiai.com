@@ -24,7 +24,7 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
   }
 
   bool isLoading = false;
-  // مفتاح Groq الخاص بك
+  // تأكد من صلاحية مفتاح الـ API الخاص بك
   final String _groqApiKey = "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";
 
   Future<void> sendMessage(String text, {Uint8List? imageBytes}) async {
@@ -41,12 +41,13 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     state = [...state]; 
 
     try {
-      // 1. تحديد الموديل (Llama 3.2 للصور و Llama 3 لـ النصوص)
+      // تحديث الموديلات:
+      // للنصوص: llama-3.3-70b-versatile (الأحدث والأقوى)
+      // للصور: llama-3.2-11b-vision-preview
       final String modelId = imageBytes != null 
           ? "llama-3.2-11b-vision-preview" 
-          : "llama3-8b-8192";
+          : "llama-3.3-70b-versatile";
 
-      // 2. بناء محتوى الرسالة بناءً على نوع المدخلات
       dynamic content;
       if (imageBytes != null) {
         content = [
@@ -57,10 +58,10 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
           }
         ];
       } else {
-        content = text; // للنصوص العادية نرسل النص مباشرة
+        // Groq API يفضل استقبال النص كـ String مباشر للطلبات النصية البسيطة
+        content = text;
       }
 
-      // 3. إرسال الطلب إلى Groq
       final response = await http.post(
         Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
         headers: {
@@ -85,13 +86,12 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
         state = [...state, ChatMessage(text: aiText, isUser: false)];
         await _saveChatHistory();
       } else {
-        // استخراج رسالة الخطأ الحقيقية من الخادم
         final errorBody = jsonDecode(response.body);
-        String errorMessage = errorBody['error']['message'] ?? "خطأ غير معروف";
-        state = [...state, ChatMessage(text: "تنبيه: $errorMessage", isUser: false)];
+        String errorMessage = errorBody['error']['message'] ?? "خطأ في الرد";
+        state = [...state, ChatMessage(text: "تنبيه الخادم: $errorMessage", isUser: false)];
       }
     } catch (e) {
-      state = [...state, ChatMessage(text: "حدث خطأ في الاتصال. تأكد من إيقاف حماية الويب CORS.", isUser: false)];
+      state = [...state, ChatMessage(text: "خطأ في الاتصال: $e", isUser: false)];
     } finally {
       isLoading = false;
       state = [...state];
