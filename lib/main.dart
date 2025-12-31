@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; 
-import 'package:humini_ai/screens/home_screen.dart';
+import 'package:firebase_core/firebase_core.dart'; // سطر جديد
+import 'firebase_options.dart'; // سطر جديد (الملف الذي تم إنشاؤه)
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // سنبقي على تهيئة فايربيز لأن الذكاء الاصطناعي قد يحتاجها
+  // تهيئة فايربيز باستخدام الخيارات التي تم توليدها تلقائياً
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -27,8 +27,7 @@ class HuminiApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: Colors.deepPurple,
       ),
-      // الدخول مباشرة لصفحة الهوم بدون فحص تسجيل الدخول
-      home: HomeScreen(), 
+      home: HomeScreen(),
     );
   }
 }

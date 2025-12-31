@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
               child: Icon(Icons.auto_awesome, color: Colors.white, size: 20),
             ),
             SizedBox(width: 12),
-            Text("Humini AI", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            Text("HUMINI AI", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [

@@ -42,7 +42,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyBqDlm38EdtTeIBXbP9aLmc9GQNjabViPY',
-    appId: '1:459439843528:web:e2b354ba912825b0549dfd',
+    appId: '1:459439843528:web:97d9f151cbfa5c38549dfd',
     messagingSenderId: '459439843528',
     projectId: 'huminiai',
     authDomain: 'huminiai.firebaseapp.com',
@@ -63,6 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '459439843528',
     projectId: 'huminiai',
     storageBucket: 'huminiai.firebasestorage.app',
+    iosClientId: '459439843528-g9kgie0dmlcet95qev3n018sfi6uk11p.apps.googleusercontent.com',
     iosBundleId: 'com.example.huminiAi',
   );
 
@@ -72,6 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '459439843528',
     projectId: 'huminiai',
     storageBucket: 'huminiai.firebasestorage.app',
+    iosClientId: '459439843528-g9kgie0dmlcet95qev3n018sfi6uk11p.apps.googleusercontent.com',
     iosBundleId: 'com.example.huminiAi',
   );
 
@@ -83,4 +85,5 @@ class DefaultFirebaseOptions {
     authDomain: 'huminiai.firebaseapp.com',
     storageBucket: 'huminiai.firebasestorage.app',
   );
+
 }
