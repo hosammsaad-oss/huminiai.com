@@ -5,9 +5,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-// ضروري لربط المتجر
-import 'social_leagues_screen.dart'; 
-import '../RewardsStore/rewards_store.dart';
+
+import 'social_leagues_screen.dart'; // ضروري لربط ساحة المنافسة
+import '../RewardsStore/rewards_store.dart'; // ضروري لربط المتجر
+
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -19,7 +20,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final user = FirebaseAuth.instance.currentUser;
   File? _imageFile;
 
-  // 1. دالة تغيير الصورة
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
@@ -29,7 +29,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  // 2. دالة تعديل الاسم
   void _showEditNameDialog() {
     final controller = TextEditingController(text: user?.displayName);
     _showStyledDialog(
@@ -42,7 +41,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  // 3. دالة تغيير البريد الإلكتروني
   void _showEditEmailDialog() {
     final controller = TextEditingController(text: user?.email);
     _showStyledDialog(
@@ -63,7 +61,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  // 4. دالة إعادة تعيين كلمة المرور
   void _resetPassword() async {
     if (user?.email != null) {
       try {
@@ -79,7 +76,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  // 5. دالة اختيار اللغة
   void _showLanguagePicker() {
     showModalBottomSheet(
       context: context,
@@ -179,7 +175,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(user?.displayName ?? "مستخدم هيومني", style: GoogleFonts.tajawal(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
               Text(user?.email ?? "humini.user@ai.com", style: GoogleFonts.poppins(color: Colors.grey)),
               
-              // عرض النقاط بشكل حي
               const SizedBox(height: 20),
               StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
@@ -216,7 +211,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    // زر الدخول لمتجر المكافآت
+                    // --- 1. زر ساحة المنافسة (تمت إضافته هنا) ---
+                    _buildProfileOption(
+                      context: context, 
+                      icon: Icons.leaderboard_outlined, 
+                      title: "ساحة المنافسة", 
+                      trailing: "تحديات الفريق",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SocialLeaguesScreen()),
+                        );
+                      }
+                    ),
+
+                    // --- 2. زر متجر المكافآت ---
                     StreamBuilder<DocumentSnapshot>(
                       stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
                       builder: (context, snapshot) {
@@ -238,6 +247,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         );
                       }
                     ),
+                    
                     _buildProfileOption(context: context, icon: Icons.person_outline, title: "تعديل الاسم", onTap: _showEditNameDialog),
                     _buildProfileOption(context: context, icon: Icons.email_outlined, title: "تغيير البريد الإلكتروني", onTap: _showEditEmailDialog),
                     _buildProfileOption(context: context, icon: Icons.lock_outline, title: "تغيير كلمة المرور", onTap: _resetPassword),
@@ -283,4 +293,3 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 }
-
