@@ -1,6 +1,6 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,130 +10,143 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  // تعريف الكائن بشكل مستقل لضمان التعرف على الـ Constructor
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-
-  Future<void> _signInWithGoogle() async {
+  // 1. دالة الدخول كضيف
+  Future<void> _signInAnonymously() async {
     setState(() => _isLoading = true);
     try {
-      // 1. بدء عملية تسجيل الدخول
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        // المستخدم أغلق نافذة تسجيل الدخول
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      // 2. جلب بيانات المصادقة (Tokens)
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // 3. إنشاء كcredential للفايربيز
-      // ملاحظة: استخدام 'as dynamic' في بعض الحالات يحل تضارب الأنواع في الويب
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // 4. تسجيل الدخول في فايربيز
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      
+      await FirebaseAuth.instance.signInAnonymously();
+      // سيتم التحويل للهوم تلقائياً بفضل الـ StreamBuilder في main.dart
     } catch (e) {
-      debugPrint("خطأ في تسجيل الدخول: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("فشل الدخول: تأكد من إعدادات الويب والـ SHA-1"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      _showError("فشل الدخول كضيف: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // 2. دالة جوجل
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      await FirebaseAuth.instance.signInWithPopup(googleProvider);
+    } catch (e) {
+      _showError("فشل تسجيل الدخول بجوجل: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // 3. دالة البريد الإلكتروني
+  Future<void> _processAuth(bool isRegistration) async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
+      _showError("يرجى ملء كافة الحقول");
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      if (isRegistration) {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
+      } else {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+      }
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? "حدث خطأ ما");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.redAccent));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.deepPurple.shade900, Colors.deepPurple.shade600],
-          ),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 100),
-            const Icon(Icons.auto_awesome, size: 80, color: Colors.white),
-            const SizedBox(height: 20),
-            const Text(
-              "Humini AI",
-              style: TextStyle(
-                color: Colors.white, 
-                fontSize: 35, 
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2
-              ),
-            ),
-            const Spacer(),
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(50), 
-                  topRight: Radius.circular(50)
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.auto_awesome, size: 80, color: Colors.deepPurpleAccent),
+              const SizedBox(height: 10),
+              const Text("HUMINI AI", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 30),
+              
+              TextField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  hintText: "البريد الإلكتروني",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
-              child: Column(
-                children: [
-                  const Text(
-                    "مرحباً بك", 
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "سجل دخولك لربط بياناتك واستخدام الذكاء الاصطناعي",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey, fontSize: 15),
-                  ),
-                  const SizedBox(height: 40),
-                  if (_isLoading)
-                    const CircularProgressIndicator()
-                  else
-                    ElevatedButton.icon(
-                      onPressed: _signInWithGoogle,
-                      icon: Image.network(
-                        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_Color_Logo.svg/1200px-Google_Color_Logo.svg.png',
-                        height: 24,
-                      ),
-                      label: const Text(
-                        "متابعة باستخدام جوجل",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.black87,
-                        backgroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 55),
-                        side: const BorderSide(color: Colors.black12),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 20),
-                ],
+              const SizedBox(height: 10),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: "كلمة المرور",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                ),
               ),
-            )
-          ],
+              const SizedBox(height: 20),
+
+              if (_isLoading)
+                const CircularProgressIndicator(color: Colors.deepPurpleAccent)
+              else ...[
+                // زر الدخول بالبريد
+                ElevatedButton(
+                  onPressed: () => _processAuth(false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurpleAccent,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  child: const Text("تسجيل الدخول", style: TextStyle(color: Colors.white)),
+                ),
+                
+                const SizedBox(height: 15),
+                
+                // زر جوجل
+                OutlinedButton.icon(
+                  onPressed: _signInWithGoogle,
+                  icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg', height: 20),
+                  label: const Text("الدخول بواسطة جوجل", style: TextStyle(color: Colors.black87)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // زر الدخول كضيف (جديد)
+                TextButton(
+                  onPressed: _signInAnonymously,
+                  child: const Text("استخدام كضيف (بدون حساب)", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+                
+                const Divider(),
+                
+                TextButton(
+                  onPressed: () => _processAuth(true),
+                  child: const Text("ليس لديك حساب؟ إنشاء حساب بريد", style: TextStyle(color: Colors.deepPurpleAccent)),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

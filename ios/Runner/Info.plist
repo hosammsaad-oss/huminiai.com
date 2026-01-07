@@ -51,3 +51,10 @@
 <string>نحتاج للميكروفون لتحويل صوتك إلى نص</string>
 <key>NSSpeechRecognitionUsageDescription</key>
 <string>نحتاج لصلاحية التعرف على الكلام</string>
+
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>يحتاج هوميني الوصول لموقعك لتقديم اقتراحات ذكية عند وصولك للعمل أو المنزل.</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>يحتاج هوميني الوصول لموقعك في الخلفية لتذكيرك بمهامك الهامة بناءً على مكانك.</string>
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>نستخدم موقعك لتقديم تجربة وعي سياقي ذكية وربط مهامك بمكان تواجدك.</string>

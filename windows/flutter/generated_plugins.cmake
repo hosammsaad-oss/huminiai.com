@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_auth
   firebase_core
   flutter_tts
+  geolocator_windows
   speech_to_text_windows
 )
 
