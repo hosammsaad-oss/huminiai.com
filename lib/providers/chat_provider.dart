@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'life_provider.dart';
 import 'goals_provider.dart';
 import '../services/context_service.dart';
+import '../services/points_service.dart'; // استيراد خدمة النقاط
 
 class ChatMessage {
   final String text;
@@ -97,7 +98,6 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     } catch (e) { return "عذراً، حدث خطأ في تحليل الصورة: $e"; }
   }
 
-  // دالة مساعدة لتحويل الـ Enum إلى نص مفهوم للذكاء الاصطناعي
   String _getMoodTranslation(UserMood mood) {
     switch (mood) {
       case UserMood.happy: return "سعيد ومبتهج";
@@ -113,7 +113,6 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     final userId = await _getOrCreateUserId();
     isLoading = true;
 
-    // جلب سياق الطاقة والموقع والمزاج الحالي
     final contextInfo = ref.read(contextProvider);
     final energy = contextInfo.energyLevel;
     final moodText = _getMoodTranslation(contextInfo.mood);
@@ -141,6 +140,10 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
 """;
 
     await _firestore.collection('chats').add(ChatMessage(text: userText, isUser: true, timestamp: DateTime.now()).toMap(userId));
+
+    // --- ميزة اليونيكورن: كسب النقاط عند التفاعل الذكي ---
+    int pointsToEarn = userText.length > 50 ? 5 : 2; // 5 نقاط للأسئلة العميقة و2 للقصيرة
+    await PointsService.addPoints(pointsToEarn);
 
     try {
       final response = await http.post(
@@ -174,6 +177,8 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
               'isCompleted': false, 
               'createdAt': FieldValue.serverTimestamp(),
             });
+            // مكافأة إضافية إذا جعل الـ AI يضيف له مهمة تلقائياً!
+            await PointsService.addPoints(10);
           }
           aiResponse = aiResponse.replaceRange(aiResponse.indexOf("[ADD_TASK:"), endIndex + 1, "").trim();
         }
@@ -192,6 +197,14 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     String? base64String = imageBytes != null ? base64Encode(imageBytes) : null;
     
     await _firestore.collection('chats').add(ChatMessage(text: text, isUser: true, base64Image: base64String, timestamp: DateTime.now()).toMap(userId));
+    
+    // --- ميزة اليونيكورن: كسب نقاط عند إرسال صور للتحليل (أكثر قيمة) ---
+    if (base64String != null) {
+      await PointsService.addPoints(15); // تحليل الصور يمنح 15 نقطة
+    } else if (text.isNotEmpty) {
+      await PointsService.addPoints(2);
+    }
+
     String fullAiText = await _askGemini(text.isEmpty ? "ماذا ترى في هذه الصورة؟" : text, base64String);
     await _firestore.collection('chats').add(ChatMessage(text: fullAiText, isUser: false, timestamp: DateTime.now()).toMap(userId));
   }

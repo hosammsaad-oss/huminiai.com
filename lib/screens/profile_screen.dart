@@ -6,8 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import 'social_leagues_screen.dart'; // ضروري لربط ساحة المنافسة
-import '../RewardsStore/rewards_store.dart'; // ضروري لربط المتجر
+import 'social_leagues_screen.dart'; 
+import '../RewardsStore/rewards_store.dart'; 
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -144,131 +144,175 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: const Color(0xFF6B4EFF).withOpacity(0.1),
-                      backgroundImage: _imageFile != null ? FileImage(_imageFile!) : (user?.photoURL != null ? NetworkImage(user!.photoURL!) : null),
-                      child: (user?.photoURL == null && _imageFile == null)
-                          ? Text(user?.email?.substring(0, 1).toUpperCase() ?? "H", style: GoogleFonts.poppins(fontSize: 50, fontWeight: FontWeight.bold, color: const Color(0xFF6B4EFF)))
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: CircleAvatar(
-                        backgroundColor: const Color(0xFF6B4EFF),
-                        radius: 18,
-                        child: IconButton(icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white), onPressed: _pickImage),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 15),
-              Text(user?.displayName ?? "مستخدم هيومني", style: GoogleFonts.tajawal(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
-              Text(user?.email ?? "humini.user@ai.com", style: GoogleFonts.poppins(color: Colors.grey)),
-              
-              const SizedBox(height: 20),
-              StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
-                builder: (context, snapshot) {
-                  int points = 0;
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    final data = snapshot.data!.data() as Map<String, dynamic>;
-                    points = data['points'] ?? 0;
-                  }
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.amber.shade300),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
+          builder: (context, snapshot) {
+            int points = 0;
+            String mood = "غير محدد";
+            int energy = 0;
+
+            if (snapshot.hasData && snapshot.data!.exists) {
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              points = data['points'] ?? 0;
+              mood = data['currentMood'] ?? "طبيعي";
+              energy = data['energyLevel'] ?? 0;
+            }
+
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  // قسم الصورة
+                  Center(
+                    child: Stack(
                       children: [
-                        const Icon(Icons.stars, color: Colors.amber),
-                        const SizedBox(width: 8),
-                        Text(
-                          "$points نقطة",
-                          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.amber.shade900),
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: const Color(0xFF6B4EFF).withOpacity(0.1),
+                          backgroundImage: _imageFile != null ? FileImage(_imageFile!) : (user?.photoURL != null ? NetworkImage(user!.photoURL!) : null),
+                          child: (user?.photoURL == null && _imageFile == null)
+                              ? Text(user?.email?.substring(0, 1).toUpperCase() ?? "H", style: GoogleFonts.poppins(fontSize: 50, fontWeight: FontWeight.bold, color: const Color(0xFF6B4EFF)))
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: CircleAvatar(
+                            backgroundColor: const Color(0xFF6B4EFF),
+                            radius: 18,
+                            child: IconButton(icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white), onPressed: _pickImage),
+                          ),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                  const SizedBox(height: 15),
+                  Text(user?.displayName ?? "مستخدم هيومني", style: GoogleFonts.tajawal(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                  Text(user?.email ?? "humini.user@ai.com", style: GoogleFonts.poppins(color: Colors.grey)),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // بطاقة النقاط المحسنة
+                  _buildPointsCard(points),
 
-              const SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    // --- 1. زر ساحة المنافسة (تمت إضافته هنا) ---
-                    _buildProfileOption(
-                      context: context, 
-                      icon: Icons.leaderboard_outlined, 
-                      title: "ساحة المنافسة", 
-                      trailing: "تحديات الفريق",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SocialLeaguesScreen()),
-                        );
-                      }
-                    ),
+                  const SizedBox(height: 15),
 
-                    // --- 2. زر متجر المكافآت ---
-                    StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
-                      builder: (context, snapshot) {
-                        int points = 0;
-                        if (snapshot.hasData && snapshot.data!.exists) {
-                          points = (snapshot.data!.data() as Map<String, dynamic>)['points'] ?? 0;
-                        }
-                        return _buildProfileOption(
+                  // ملخص الحالة الذكي (الإضافة الجديدة)
+                  _buildEmotionalQuickView(mood, energy, isDark),
+
+                  const SizedBox(height: 20),
+                  
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        _buildProfileOption(
+                          context: context, 
+                          icon: Icons.leaderboard_outlined, 
+                          title: "ساحة المنافسة", 
+                          trailing: "تحديات الفريق",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SocialLeaguesScreen()));
+                          }
+                        ),
+                        _buildProfileOption(
                           context: context, 
                           icon: Icons.shopping_bag_outlined, 
                           title: "متجر المكافآت", 
                           trailing: "استبدل نقاطك",
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => RewardsStore(currentPoints: points)),
-                            );
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => RewardsStore(currentPoints: points)));
                           }
-                        );
-                      }
+                        ),
+                        _buildProfileOption(context: context, icon: Icons.person_outline, title: "تعديل الاسم", onTap: _showEditNameDialog),
+                        _buildProfileOption(context: context, icon: Icons.email_outlined, title: "تغيير البريد الإلكتروني", onTap: _showEditEmailDialog),
+                        _buildProfileOption(context: context, icon: Icons.lock_outline, title: "تغيير كلمة المرور", onTap: _resetPassword),
+                        _buildProfileOption(context: context, icon: Icons.language, title: "لغة التطبيق", trailing: "العربية", onTap: _showLanguagePicker),
+                        const Divider(height: 40),
+                        _buildProfileOption(
+                          context: context,
+                          icon: Icons.logout,
+                          title: "تسجيل الخروج",
+                          color: Colors.redAccent,
+                          onTap: () async {
+                            await FirebaseAuth.instance.signOut();
+                            if (mounted) Navigator.pop(context);
+                          },
+                        ),
+                      ],
                     ),
-                    
-                    _buildProfileOption(context: context, icon: Icons.person_outline, title: "تعديل الاسم", onTap: _showEditNameDialog),
-                    _buildProfileOption(context: context, icon: Icons.email_outlined, title: "تغيير البريد الإلكتروني", onTap: _showEditEmailDialog),
-                    _buildProfileOption(context: context, icon: Icons.lock_outline, title: "تغيير كلمة المرور", onTap: _resetPassword),
-                    _buildProfileOption(context: context, icon: Icons.language, title: "لغة التطبيق", trailing: "العربية", onTap: _showLanguagePicker),
-                    const Divider(height: 40),
-                    _buildProfileOption(
-                      context: context,
-                      icon: Icons.logout,
-                      title: "تسجيل الخروج",
-                      color: Colors.redAccent,
-                      onTap: () async {
-                        await FirebaseAuth.instance.signOut();
-                        if (mounted) Navigator.pop(context);
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPointsCard(int points) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Colors.amber, Colors.orangeAccent]),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.3), blurRadius: 10)],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("رصيد اليونيكورن", style: GoogleFonts.tajawal(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text("$points نقطة", style: GoogleFonts.poppins(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             ],
           ),
-        ),
+          const Icon(Icons.stars, color: Colors.white, size: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmotionalQuickView(String mood, int energy, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[900] : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology, color: Color(0xFF6B4EFF), size: 20),
+              const SizedBox(width: 8),
+              Text("ملخص الحالة الذكي 🧠", style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const Divider(),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("المزاج الحالي:", style: GoogleFonts.tajawal(fontSize: 13)),
+              Text(mood, style: GoogleFonts.tajawal(color: const Color(0xFF6B4EFF), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("مستوى الحيوية:", style: GoogleFonts.tajawal(fontSize: 13)),
+              Text("$energy%", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: energy < 50 ? Colors.orange : Colors.green)),
+            ],
+          ),
+        ],
       ),
     );
   }

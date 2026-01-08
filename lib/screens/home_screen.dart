@@ -15,6 +15,13 @@ import 'analytics_screen.dart';
 import 'goals_screen.dart'; 
 import 'profile_screen.dart'; 
 
+// استيراد الصفحات الجديدة
+import 'emotional_insights_screen.dart';
+import 'lucky_chest_screen.dart';
+// --- الإضافات الجديدة هنا ---
+import 'productivity_stats_screen.dart'; 
+import 'social_leagues_screen.dart'; 
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -61,6 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final contextState = ref.watch(contextProvider); 
 
     return Scaffold(
+      // تم ربط الـ Drawer هنا
       drawer: _buildLifeManagerDrawer(context, tasks),
       appBar: AppBar(
         centerTitle: true,
@@ -86,7 +94,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 const SmartContextBanner(),
                 
-                // --- شريط مستوى الطاقة ---
                 if (contextState.energyLevel < 100)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -114,7 +121,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
 
-                // --- الميزة الجديدة: محدد الحالة المزاجية (Mood Selector) ---
                 _buildMoodSelector(),
 
                 Expanded(
@@ -140,7 +146,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // دالة بناء محدد المزاج
   Widget _buildMoodSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -195,11 +200,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Row(
           children: [
             _buildCircleIconButton(Icons.mic_none_rounded, () {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ميزة التسجيل الصوتي قادمة قريباً")));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ميزة التسجيل الصوتي قادمة قريباً")));
             }),
             const SizedBox(width: 8),
             _buildCircleIconButton(Icons.add_photo_alternate_outlined, () {
-               ref.read(chatProvider.notifier).pickAndSendImage(tasks, goals);
+                ref.read(chatProvider.notifier).pickAndSendImage(tasks, goals);
             }),
             const SizedBox(width: 12),
             Expanded(
@@ -272,6 +277,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: EdgeInsets.zero,
                 children: [
                   _buildThemeTile(themeMode),
+                  const Divider(),
+                  
+                  // الميزات الجديدة والمحدثة
+                  _buildDrawerTile(Icons.analytics_rounded, "بصيرة هوميني الذكية 📊", () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductivityStatsScreen()));
+                  }),
+
+                  _buildDrawerTile(Icons.emoji_events_outlined, "ساحة المنافسة 🏆", () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SocialLeaguesScreen()));
+                  }),
+
+                  const Divider(),
+
+                  _buildDrawerTile(Icons.insights_rounded, "تحليل المشاعر ✨", () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const EmotionalInsightsScreen()));
+                  }),
+                  _buildDrawerTile(Icons.auto_awesome, "صندوق المفاجآت 🎁", () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const LuckyChestScreen()));
+                  }),
+                  
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.add_location_alt_rounded, color: Colors.green),

@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+
 
 // الموديل كما هو لضمان توافق HomeScreen
 class TaskModel {
@@ -67,7 +71,7 @@ class LifeNotifier extends StateNotifier<List<TaskModel>> {
   Future<void> toggleTask(String taskId, bool currentStatus) async {
     final user = _auth.currentUser;
     if (user == null) return;
-
+    
     // 1. تحديث حالة المهمة في Firestore
     await _firestore
         .collection('users')
