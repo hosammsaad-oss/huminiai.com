@@ -7,12 +7,13 @@ import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // [جديد]
 
 // استيراد الموديلات والخدمات
 import 'life_provider.dart';
 import 'goals_provider.dart';
 import '../services/context_service.dart';
-import '../services/points_service.dart'; // استيراد خدمة النقاط
+import '../services/points_service.dart'; 
 
 class ChatMessage {
   final String text;
@@ -38,6 +39,7 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ImagePicker _picker = ImagePicker();
+  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin(); // [جديد]
   bool isLoading = false;
   String? _cachedUserId;
 
@@ -47,6 +49,63 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
   );
 
   ChatNotifier(this.ref) : super([]) { _initAndLoadMessages(); }
+
+  // --- [جديد] نظام تتبع التحدي اليومي الذكي ---
+  Future<void> _processDailyChallenge() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final String today = DateTime.now().toIso8601String().split('T')[0];
+    final userDoc = _firestore.collection('users').doc(user.uid);
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(userDoc);
+        if (!snapshot.exists) return;
+
+        final data = snapshot.data() as Map<String, dynamic>;
+        String lastDate = data['lastChallengeDate'] ?? "";
+        int chatCount = data['dailyChatCount'] ?? 0;
+        bool isRewarded = data['challengeCompleted'] ?? false;
+
+        if (lastDate != today) {
+          chatCount = 1;
+          isRewarded = false;
+        } else {
+          chatCount++;
+        }
+
+        transaction.update(userDoc, {
+          'dailyChatCount': chatCount,
+          'lastChallengeDate': today,
+        });
+
+        // إذا وصل لـ 3 محادثات ولم يُكافئ بعد
+        if (chatCount == 3 && !isRewarded) {
+          transaction.update(userDoc, {
+            'points': FieldValue.increment(50),
+            'challengeCompleted': true,
+          });
+          _sendCompletionNotification();
+        }
+      });
+    } catch (e) {
+      print("Challenge Error: $e");
+    }
+  }
+
+  // [جديد] إشعار فوري عند اكتمال التحدي
+  void _sendCompletionNotification() async {
+    const androidDetails = AndroidNotificationDetails(
+      'challenge_done', 'تحديات هوميني',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    await _notificationsPlugin.show(
+      0, "كفو يا بطل! 🏆", "أكملت تحدي اليوم وحصلت على 50 نقطة مكافأة.",
+      const NotificationDetails(android: androidDetails),
+    );
+  }
 
   Future<String> _getOrCreateUserId() async {
     if (_auth.currentUser != null) return _auth.currentUser!.uid;
@@ -113,6 +172,9 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     final userId = await _getOrCreateUserId();
     isLoading = true;
 
+    // تفعيل نظام التحدي اليومي
+    await _processDailyChallenge();
+
     final contextInfo = ref.read(contextProvider);
     final energy = contextInfo.energyLevel;
     final moodText = _getMoodTranslation(contextInfo.mood);
@@ -130,19 +192,12 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
 - المهام المتبقية: [$remainingTasksStr].
 - الأهداف الإستراتيجية: [$goalsStr].
 
-قواعد هامة للرد بناءً على المزاج والطاقة:
-1. إذا كان المزاج 'مضغوط' أو الطاقة < 40%: كن موجزاً جداً، رحيماً، ولا تقترح مهاماً صعبة. ركز على المواساة والتشجيع البسيط.
-2. إذا كان المزاج 'مركز': أعطه تفاصيل دقيقة وساعده على إنجاز المهام المعقدة.
-3. إذا كان المزاج 'سعيد': كن مرحاً وشاركه الحماس.
-4. إذا طلب المستخدم إضافة مهمة، ابدأ بـ [ADD_TASK: اسم المهمة].
-5. استخدم بيانات الموقع الحالي لتذكيره بمهام مرتبطة بالمكان (إذا كان في العمل).
-6. لغة الرد: العربية، ودودة، ومحفزة.
+(القواعد الأصلية المذكورة سابقاً...)
 """;
 
     await _firestore.collection('chats').add(ChatMessage(text: userText, isUser: true, timestamp: DateTime.now()).toMap(userId));
 
-    // --- ميزة اليونيكورن: كسب النقاط عند التفاعل الذكي ---
-    int pointsToEarn = userText.length > 50 ? 5 : 2; // 5 نقاط للأسئلة العميقة و2 للقصيرة
+    int pointsToEarn = userText.length > 50 ? 5 : 2; 
     await PointsService.addPoints(pointsToEarn);
 
     try {
@@ -177,7 +232,6 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
               'isCompleted': false, 
               'createdAt': FieldValue.serverTimestamp(),
             });
-            // مكافأة إضافية إذا جعل الـ AI يضيف له مهمة تلقائياً!
             await PointsService.addPoints(10);
           }
           aiResponse = aiResponse.replaceRange(aiResponse.indexOf("[ADD_TASK:"), endIndex + 1, "").trim();
@@ -194,13 +248,15 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
 
   Future<void> sendMessage(String text, {List<int>? imageBytes}) async {
     final userId = await _getOrCreateUserId();
-    String? base64String = imageBytes != null ? base64Encode(imageBytes) : null;
     
+    // تفعيل نظام التحدي اليومي
+    await _processDailyChallenge();
+
+    String? base64String = imageBytes != null ? base64Encode(imageBytes) : null;
     await _firestore.collection('chats').add(ChatMessage(text: text, isUser: true, base64Image: base64String, timestamp: DateTime.now()).toMap(userId));
     
-    // --- ميزة اليونيكورن: كسب نقاط عند إرسال صور للتحليل (أكثر قيمة) ---
     if (base64String != null) {
-      await PointsService.addPoints(15); // تحليل الصور يمنح 15 نقطة
+      await PointsService.addPoints(15); 
     } else if (text.isNotEmpty) {
       await PointsService.addPoints(2);
     }

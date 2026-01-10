@@ -66,10 +66,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final tasks = ref.watch(lifeProvider);
     final goals = ref.watch(goalsProvider); 
     final contextState = ref.watch(contextProvider); 
+    // مراقبة النقاط من الـ Provider الجديد
+    final userXP = ref.watch(userXPProvider);
 
     return Scaffold(
-      // تم ربط الـ Drawer هنا
-      drawer: _buildLifeManagerDrawer(context, tasks),
+      drawer: _buildLifeManagerDrawer(context, tasks, userXP),
       appBar: AppBar(
         centerTitle: true,
         elevation: 0,
@@ -80,9 +81,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white)
         ),
         actions: [
+          // عرض النقاط بشكل سريع في الـ AppBar
+          userXP.when(
+            data: (xp) => Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text("$xp ✨", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            loading: () => const SizedBox(),
+            error: (_, __) => const SizedBox(),
+          ),
           IconButton(
-            icon: const Icon(Icons.auto_graph_rounded, color: Colors.white),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen())),
+            icon: const Icon(Icons.account_circle_outlined, color: Colors.white),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
           ),
         ],
       ),
@@ -260,7 +272,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildLifeManagerDrawer(BuildContext context, List<TaskModel> tasks) {
+  Widget _buildLifeManagerDrawer(BuildContext context, List<TaskModel> tasks, AsyncValue<int> userXP) {
     final themeMode = ref.watch(themeProvider);
     final completedCount = tasks.where((t) => t.isCompleted).length;
     final remaining = tasks.length - completedCount;
@@ -271,7 +283,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         textDirection: TextDirection.rtl,
         child: Column(
           children: [
-            _buildDrawerHeader(progress, remaining, tasks.length),
+            _buildDrawerHeader(progress, remaining, tasks.length, userXP),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
@@ -279,7 +291,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _buildThemeTile(themeMode),
                   const Divider(),
                   
-                  // الميزات الجديدة والمحدثة
                   _buildDrawerTile(Icons.analytics_rounded, "بصيرة هوميني الذكية 📊", () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductivityStatsScreen()));
                   }),
@@ -332,7 +343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildDrawerHeader(double progress, int remaining, int total) {
+  Widget _buildDrawerHeader(double progress, int remaining, int total, AsyncValue<int> userXP) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
@@ -360,6 +371,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 15),
             Text("إدارة الحياة الذكية", style: GoogleFonts.tajawal(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
+            // عرض النقاط في الـ Drawer
+            userXP.when(
+              data: (xp) => Text("رصيد نقاط البريق: $xp ✨", style: const TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+              loading: () => const Text("جاري تحميل النقاط...", style: TextStyle(color: Colors.white70, fontSize: 12)),
+              error: (_, __) => const Text("خطأ في النقاط", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+            const SizedBox(height: 5),
             Text("لديك $remaining مهام متبقية", style: const TextStyle(color: Colors.white70, fontSize: 13)),
             const SizedBox(height: 20),
             ClipRRect(
@@ -384,7 +402,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         activeColor: const Color(0xFF6B4EFF),
         onChanged: (v) {
           ref.read(lifeProvider.notifier).toggleTask(task.id, task.isCompleted);
-          if (v == true) _confettiController.play();
+          if (v == true) {
+             _confettiController.play();
+             // رسالة تأكيد النقاط
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text("رائع! +50 نقطة بريق ✨"), duration: Duration(seconds: 1), backgroundColor: Color(0xFF6B4EFF))
+             );
+          }
         },
       ),
       title: Text(task.title, style: GoogleFonts.tajawal(decoration: task.isCompleted ? TextDecoration.lineThrough : null, color: task.isCompleted ? Colors.grey : null)),

@@ -181,7 +181,7 @@ class AnalyticsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(value: progress, color: const Color(0xFF6B4EFF), backgroundColor: Color(0xFFF0EDFF), minHeight: 6),
+            child: LinearProgressIndicator(value: progress, color: const Color(0xFF6B4EFF), backgroundColor: const Color(0xFFF0EDFF), minHeight: 6),
           ),
         ],
       ),

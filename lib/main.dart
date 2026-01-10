@@ -5,11 +5,21 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart'; // [إضافة] مكتبة الموقع
+import 'package:firebase_messaging/firebase_messaging.dart'; // [جديد] للإشعارات
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // [جديد] للتنبيهات المحلية
 import 'dart:async';
 
 // استيراد الملفات الخاصة بمشروعك
 import 'screens/home_screen.dart';
 import 'firebase_options.dart'; 
+
+// --- [جديد] إعدادات الإشعارات العالمية ---
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 // --- مزود حالة الثيم (Theme Provider) ---
 final themeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
@@ -41,6 +51,27 @@ void main() async {
   // تهيئة Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // --- [جديد] تهيئة نظام الإشعارات الذكي ---
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'humini_main_channel', // id
+    'تنبيهات هوميني الذكية', // title
+    description: 'تستخدم لإشعارات المكافآت والترتيب العالمي', // description
+    importance: Importance.max,
+  );
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  // طلب إذن الإشعارات من المستخدم
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
   );
 
   // تسجيل دخول مجهول لضمان استقرار الصلاحيات

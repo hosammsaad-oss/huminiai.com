@@ -20,6 +20,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final user = FirebaseAuth.instance.currentUser;
   File? _imageFile;
 
+  // دالة لحساب المستوى بناءً على النقاط
+  int _calculateLevel(int points) {
+    if (points <= 0) return 1;
+    return (points / 500).floor() + 1;
+  }
+
+  // دالة لحساب التقدم داخل المستوى الحالي
+  double _calculateLevelProgress(int points) {
+    int currentLevelPoints = points % 500;
+    return currentLevelPoints / 500;
+  }
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
@@ -158,29 +170,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               energy = data['energyLevel'] ?? 0;
             }
 
+            int currentLevel = _calculateLevel(points);
+            double levelProgress = _calculateLevelProgress(points);
+
             return SingleChildScrollView(
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // قسم الصورة
+                  // قسم الصورة والمستوى
                   Center(
                     child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        CircleAvatar(
-                          radius: 60,
-                          backgroundColor: const Color(0xFF6B4EFF).withOpacity(0.1),
-                          backgroundImage: _imageFile != null ? FileImage(_imageFile!) : (user?.photoURL != null ? NetworkImage(user!.photoURL!) : null),
-                          child: (user?.photoURL == null && _imageFile == null)
-                              ? Text(user?.email?.substring(0, 1).toUpperCase() ?? "H", style: GoogleFonts.poppins(fontSize: 50, fontWeight: FontWeight.bold, color: const Color(0xFF6B4EFF)))
-                              : null,
+                        SizedBox(
+                          width: 140,
+                          height: 140,
+                          child: CircularProgressIndicator(
+                            value: levelProgress,
+                            strokeWidth: 6,
+                            backgroundColor: Colors.grey.withOpacity(0.2),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6B4EFF)),
+                          ),
+                        ),
+                        Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 60,
+                              backgroundColor: const Color(0xFF6B4EFF).withOpacity(0.1),
+                              backgroundImage: _imageFile != null ? FileImage(_imageFile!) : (user?.photoURL != null ? NetworkImage(user!.photoURL!) : null),
+                              child: (user?.photoURL == null && _imageFile == null)
+                                  ? Text(user?.email?.substring(0, 1).toUpperCase() ?? "H", style: GoogleFonts.poppins(fontSize: 50, fontWeight: FontWeight.bold, color: const Color(0xFF6B4EFF)))
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: CircleAvatar(
+                                backgroundColor: const Color(0xFF6B4EFF),
+                                radius: 18,
+                                child: IconButton(icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white), onPressed: _pickImage),
+                              ),
+                            ),
+                          ],
                         ),
                         Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: CircleAvatar(
-                            backgroundColor: const Color(0xFF6B4EFF),
-                            radius: 18,
-                            child: IconButton(icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white), onPressed: _pickImage),
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6B4EFF),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text("مستوى $currentLevel", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -190,14 +231,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(user?.displayName ?? "مستخدم هيومني", style: GoogleFonts.tajawal(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                   Text(user?.email ?? "humini.user@ai.com", style: GoogleFonts.poppins(color: Colors.grey)),
                   
+                  const SizedBox(height: 25),
+                  
+                  // قسم الأوسمة (الإضافة الجديدة)
+                  _buildBadgesSection(points, isDark),
+
                   const SizedBox(height: 20),
                   
-                  // بطاقة النقاط المحسنة
+                  // بطاقة النقاط
                   _buildPointsCard(points),
 
                   const SizedBox(height: 15),
 
-                  // ملخص الحالة الذكي (الإضافة الجديدة)
+                  // ملخص الحالة الذكي
                   _buildEmotionalQuickView(mood, energy, isDark),
 
                   const SizedBox(height: 20),
@@ -242,11 +288,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 30),
                 ],
               ),
             );
           },
         ),
+      ),
+    );
+  }
+
+  // ويدجت عرض الأوسمة
+  Widget _buildBadgesSection(int points, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25),
+          child: Text("خزانة الأوسمة 🎖️", style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 16)),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 100,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              _badgeIcon("البداية", Icons.rocket_launch, points >= 50),
+              _badgeIcon("المنضبط", Icons.verified, points >= 500),
+              _badgeIcon("الخبير", Icons.psychology_alt, points >= 2000),
+              _badgeIcon("الأسطورة", Icons.workspace_premium, points >= 5000),
+              _badgeIcon("المنافس", Icons.military_tech, points >= 1000),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _badgeIcon(String name, IconData icon, bool isUnlocked) {
+    return Container(
+      width: 80,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: isUnlocked ? const Color(0xFF6B4EFF).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+            child: Icon(icon, color: isUnlocked ? const Color(0xFF6B4EFF) : Colors.grey, size: 30),
+          ),
+          const SizedBox(height: 5),
+          Text(name, style: GoogleFonts.tajawal(fontSize: 10, color: isUnlocked ? null : Colors.grey)),
+        ],
       ),
     );
   }

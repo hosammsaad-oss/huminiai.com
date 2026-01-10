@@ -2,9 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:audioplayers/audioplayers.dart'; // استيراد المكتبة
+import 'rewards_shop_screen.dart'; 
 
-class SocialLeaguesScreen extends StatelessWidget {
+class SocialLeaguesScreen extends StatefulWidget {
   const SocialLeaguesScreen({super.key});
+
+  @override
+  State<SocialLeaguesScreen> createState() => _SocialLeaguesScreenState();
+}
+
+class _SocialLeaguesScreenState extends State<SocialLeaguesScreen> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    _playWelcomeSound(); // تشغيل الصوت عند الدخول
+  }
+
+  void _playWelcomeSound() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/level_up.mp3'));
+    } catch (e) {
+      print("خطأ في تشغيل الصوت: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // تنظيف الموارد
+    super.dispose();
+  }
+
+  Map<String, dynamic> _getUserTitle(int points) {
+    if (points >= 1000) return {'title': 'أسطورة هوميني 👑', 'color': Colors.purple};
+    if (points >= 500) return {'title': 'خبير الأهداف 🧠', 'color': Colors.blue};
+    if (points >= 100) return {'title': 'مكافح نشط 🔥', 'color': Colors.orange};
+    return {'title': 'مبتدئ هوميني 🌱', 'color': Colors.green};
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,17 +52,23 @@ class SocialLeaguesScreen extends StatelessWidget {
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsShopScreen()));
+            },
+            icon: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF6B4EFF), size: 26),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Column(
           children: [
-            // --- 1. قسم تحدي اليوم الذكي ---
-            _buildDailyChallengeCard(),
-
+            _buildDailyChallengeCard(currentUser?.uid),
+            _buildMyRankStatus(currentUser?.uid),
             const SizedBox(height: 10),
-            
-            // --- العنوان ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -40,8 +82,6 @@ class SocialLeaguesScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-
-            // --- 2. لوحة الصدارة الحية (Real-time Leaderboard) ---
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -54,13 +94,10 @@ class SocialLeaguesScreen extends StatelessWidget {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
-                      child: Text("لا توجد منافسات حالياً، كن الأول!", style: GoogleFonts.tajawal()),
-                    );
+                    return Center(child: Text("لا توجد منافسات حالياً", style: GoogleFonts.tajawal()));
                   }
 
                   final docs = snapshot.data!.docs;
-
                   return ListView.builder(
                     itemCount: docs.length,
                     padding: const EdgeInsets.only(bottom: 20),
@@ -68,12 +105,20 @@ class SocialLeaguesScreen extends StatelessWidget {
                       final userData = docs[index].data() as Map<String, dynamic>;
                       final isMe = docs[index].id == currentUser?.uid;
 
-                      return _buildLeaderboardTile(
-                        rank: index + 1,
-                        name: userData['displayName'] ?? "مستخدم هيومني",
-                        points: userData['points'] ?? 0,
-                        isMe: isMe,
-                        photoUrl: userData['photoUrl'],
+                      return TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: Duration(milliseconds: 400 + (index * 100)),
+                        builder: (context, value, child) => Opacity(
+                          opacity: value,
+                          child: Transform.translate(offset: Offset(0, 20 * (1 - value)), child: child),
+                        ),
+                        child: _buildLeaderboardTile(
+                          rank: index + 1,
+                          name: userData['displayName'] ?? "مستخدم هيومني",
+                          points: userData['points'] ?? 0,
+                          isMe: isMe,
+                          photoUrl: userData['photoUrl'],
+                        ),
                       );
                     },
                   );
@@ -86,155 +131,110 @@ class SocialLeaguesScreen extends StatelessWidget {
     );
   }
 
-  // --- ويلجت تحدي اليوم (تصميمك الأصلي مع لمسات تحسينية) ---
-  Widget _buildDailyChallengeCard() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6B4EFF), Color(0xFF00D2FF)], // تم دمج التدرج اللوني الجديد
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6B4EFF).withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // --- دوال الـ Widgets (بقيت كما هي مع تعديل بسيط لتصبح داخل الـ State) ---
+  Widget _buildMyRankStatus(String? userId) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').orderBy('points', descending: true).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox();
+        final docs = snapshot.data!.docs;
+        final myIndex = docs.indexWhere((doc) => doc.id == userId);
+        if (myIndex == -1) return const SizedBox();
+        final myRank = myIndex + 1;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6B4EFF).withOpacity(0.05),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: const Color(0xFF6B4EFF).withOpacity(0.2)),
+          ),
+          child: Row(
             children: [
-              Text("تحدي اليوم ⚡", 
-                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2), 
-                  borderRadius: BorderRadius.circular(10)
+              const Icon(Icons.stars, color: Color(0xFF6B4EFF), size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  myRank <= 3 ? "مذهل! أنت ضمن الثلاثة الأوائل 🔥" : "ترتيبك الحالي هو #$myRank. استمر في التقدم!",
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
                 ),
-                child: const Text("متبقي 5 ساعات", 
-                  style: TextStyle(color: Colors.white, fontSize: 12)),
-              )
+              ),
             ],
           ),
-          const SizedBox(height: 15),
-          Text(
-            "أكمل 3 محادثات مع الذكاء الاصطناعي حول أهدافك اليومية لتحصل على المكافأة.",
-            style: GoogleFonts.tajawal(color: Colors.white.withOpacity(0.9), fontSize: 14),
-          ),
-          const SizedBox(height: 15),
-          // شريط التقدم
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: 0.6, 
-              minHeight: 8,
-              backgroundColor: Colors.white.withOpacity(0.2), 
-              color: Colors.amber,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("المكافأة: +50 نقطة 🦄", 
-                style: GoogleFonts.tajawal(color: Colors.amber, fontWeight: FontWeight.bold)),
-              Text("60%", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
-            ],
-          )
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // --- ويلجت سطر المتصدرين (تم دمج منطق الرتب والألوان) ---
-  Widget _buildLeaderboardTile({
-    required int rank, 
-    required String name, 
-    required int points, 
-    required bool isMe, 
-    String? photoUrl
-  }) {
-    // تحديد لون الرتبة للمراكز الثلاثة الأولى
-    Color rankColor;
-    if (rank == 1) {
-      rankColor = Colors.amber; // ذهبي
-    } else if (rank == 2) {
-      rankColor = const Color(0xFFC0C0C0); // فضي
-    } else if (rank == 3) {
-      rankColor = const Color(0xFFCD7F32); // برونزي
-    } else {
-      rankColor = Colors.grey.withOpacity(0.3);
-    }
+  Widget _buildDailyChallengeCard(String? userId) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+      builder: (context, snapshot) {
+        int chatCount = 0;
+        bool isCompleted = false;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final String today = DateTime.now().toIso8601String().split('T')[0];
+          if (data['lastChallengeDate'] == today) {
+            chatCount = data['dailyChatCount'] ?? 0;
+            isCompleted = data['challengeCompleted'] ?? false;
+          }
+        }
+        double progressValue = (chatCount / 3).clamp(0.0, 1.0);
+        return Container(
+          margin: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Color(0xFF6B4EFF), Color(0xFF00D2FF)]),
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("تحدي اليوم ⚡", style: GoogleFonts.tajawal(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(isCompleted ? "مكتمل ✅" : "متبقي ${3 - chatCount} محادثات", style: const TextStyle(color: Colors.white, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 15),
+              LinearProgressIndicator(value: progressValue, backgroundColor: Colors.white24, color: Colors.amber),
+              const SizedBox(height: 10),
+              Text(isCompleted ? "تم استلام المكافأة 🎉" : "المكافأة: +50 نقطة 🦄", style: GoogleFonts.tajawal(color: Colors.amber, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
+  Widget _buildLeaderboardTile({required int rank, required String name, required int points, required bool isMe, String? photoUrl}) {
+    final titleData = _getUserTitle(points);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isMe ? const Color(0xFF6B4EFF).withOpacity(0.08) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: isMe ? Border.all(color: const Color(0xFF6B4EFF), width: 1.5) : Border.all(color: Colors.grey.withOpacity(0.1)),
-        boxShadow: [
-          if (isMe) BoxShadow(color: const Color(0xFF6B4EFF).withOpacity(0.1), blurRadius: 10)
-        ],
+        border: Border.all(color: isMe ? const Color(0xFF6B4EFF) : Colors.grey.withOpacity(0.1)),
       ),
       child: Row(
         children: [
-          // رقم الترتيب أو أيقونة الكأس
-          SizedBox(
-            width: 35,
-            child: rank <= 3 
-              ? Icon(Icons.emoji_events, color: rankColor, size: 24)
-              : Text("#$rank", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.grey)),
-          ),
-          const SizedBox(width: 10),
-          // الصورة الشخصية
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: const Color(0xFF6B4EFF).withOpacity(0.1),
-            backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-            child: photoUrl == null 
-              ? Text(name.substring(0, 1), style: const TextStyle(color: Color(0xFF6B4EFF))) 
-              : null,
-          ),
+          SizedBox(width: 35, child: rank <= 3 ? Icon(Icons.emoji_events, color: Colors.amber) : Text("#$rank")),
+          CircleAvatar(backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null, child: photoUrl == null ? Text(name[0]) : null),
           const SizedBox(width: 15),
-          // الاسم (مع علامة "أنت")
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name, 
-                  style: GoogleFonts.tajawal(
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 15,
-                    color: isMe ? const Color(0xFF6B4EFF) : Colors.black87
-                  )
-                ),
-                if (isMe) Text("أنت الآن في المنافسة!", style: GoogleFonts.tajawal(fontSize: 10, color: Colors.grey)),
+                Text(name, style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
+                Text(titleData['title'], style: TextStyle(color: titleData['color'], fontSize: 11)),
               ],
             ),
           ),
-          // النقاط
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF6B4EFF).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              "$points ن", 
-              style: GoogleFonts.poppins(color: const Color(0xFF6B4EFF), fontWeight: FontWeight.bold, fontSize: 14)
-            ),
-          ),
+          Text("$points ن", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6B4EFF))),
         ],
       ),
     );
