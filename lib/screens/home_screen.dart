@@ -14,11 +14,10 @@ import '../main.dart';
 import 'analytics_screen.dart'; 
 import 'goals_screen.dart'; 
 import 'profile_screen.dart'; 
-
+import '../services/notification_service.dart'; 
 // استيراد الصفحات الجديدة
 import 'emotional_insights_screen.dart';
 import 'lucky_chest_screen.dart';
-// --- الإضافات الجديدة هنا ---
 import 'productivity_stats_screen.dart'; 
 import 'social_leagues_screen.dart'; 
 
@@ -37,7 +36,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // إعداد وحدة الأنيميشن
     _confettiController = ConfettiController(duration: const Duration(seconds: 1));
+    
+    // تفعيل الوكيل لقراءة الإشعارات وربطه بالبروفايدر بعد اكتمال بناء الإطار الأول
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.startAIReceiver(ref);
+    });
   }
 
   @override
@@ -62,11 +67,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- الاستماع المستمر للوكيل لضمان ظهور التأثير عند منح النقاط ---
+    ref.listen(chatProvider.notifier, (previous, next) {
+      next.onAchievementUnlocked = (points) {
+        _confettiController.play();
+        SuccessPointsOverlay.show(context, points);
+      };
+    });
+
     final chatMessages = ref.watch(chatProvider);
     final tasks = ref.watch(lifeProvider);
     final goals = ref.watch(goalsProvider); 
     final contextState = ref.watch(contextProvider); 
-    // مراقبة النقاط من الـ Provider الجديد
     final userXP = ref.watch(userXPProvider);
 
     return Scaffold(
@@ -81,7 +93,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white)
         ),
         actions: [
-          // عرض النقاط بشكل سريع في الـ AppBar
           userXP.when(
             data: (xp) => Center(
               child: Padding(
@@ -275,8 +286,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildLifeManagerDrawer(BuildContext context, List<TaskModel> tasks, AsyncValue<int> userXP) {
     final themeMode = ref.watch(themeProvider);
     final completedCount = tasks.where((t) => t.isCompleted).length;
-    final remaining = tasks.length - completedCount;
     final progress = tasks.isEmpty ? 0.0 : completedCount / tasks.length;
+    final remaining = tasks.length - completedCount;
 
     return Drawer(
       child: Directionality(
@@ -290,24 +301,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   _buildThemeTile(themeMode),
                   const Divider(),
-                  
                   _buildDrawerTile(Icons.analytics_rounded, "بصيرة هوميني الذكية 📊", () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductivityStatsScreen()));
                   }),
-
                   _buildDrawerTile(Icons.emoji_events_outlined, "ساحة المنافسة 🏆", () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const SocialLeaguesScreen()));
                   }),
-
                   const Divider(),
-
                   _buildDrawerTile(Icons.insights_rounded, "تحليل المشاعر ✨", () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const EmotionalInsightsScreen()));
                   }),
                   _buildDrawerTile(Icons.auto_awesome, "صندوق المفاجآت 🎁", () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const LuckyChestScreen()));
                   }),
-                  
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.add_location_alt_rounded, color: Colors.green),
@@ -371,7 +377,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 15),
             Text("إدارة الحياة الذكية", style: GoogleFonts.tajawal(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
-            // عرض النقاط في الـ Drawer
             userXP.when(
               data: (xp) => Text("رصيد نقاط البريق: $xp ✨", style: const TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
               loading: () => const Text("جاري تحميل النقاط...", style: TextStyle(color: Colors.white70, fontSize: 12)),
@@ -403,11 +408,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onChanged: (v) {
           ref.read(lifeProvider.notifier).toggleTask(task.id, task.isCompleted);
           if (v == true) {
-             _confettiController.play();
-             // رسالة تأكيد النقاط
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text("رائع! +50 نقطة بريق ✨"), duration: Duration(seconds: 1), backgroundColor: Color(0xFF6B4EFF))
-             );
+              _confettiController.play();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("رائع! +50 نقطة بريق ✨"), duration: Duration(seconds: 1), backgroundColor: Color(0xFF6B4EFF))
+              );
           }
         },
       ),
@@ -490,3 +494,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 }
+
+// --- كلاس تأثير النجاح المنبثق ---
+class SuccessPointsOverlay {
+  static void show(BuildContext context, int points) {
+    OverlayEntry? overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => Scaffold(
+        backgroundColor: Colors.black.withOpacity(0.4),
+        body: Center(
+          child: TweenAnimationBuilder(
+            duration: const Duration(milliseconds: 800),
+            tween: Tween<double>(begin: 0, end: 1),
+            curve: Curves.elasticOut,
+            builder: (context, double value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.stars, color: Colors.amber, size: 100),
+                    const SizedBox(height: 20),
+                    Text(
+                      "+$points",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 60,
+                        fontWeight: FontWeight.bold,
+                        shadows: [Shadow(blurRadius: 10, color: Colors.amber)],
+                      ),
+                    ),
+                    const Text(
+                      "نقاط إنجاز من هوميني",
+                      style: TextStyle(color: Colors.white70, fontSize: 18),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry?.remove();
+    });
+  }
+}
+

@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'social_leagues_screen.dart'; 
 import '../RewardsStore/rewards_store.dart'; 
+import 'settings_screen.dart'; // استيراد صفحة الإعدادات الجديدة
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -233,7 +234,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   
                   const SizedBox(height: 25),
                   
-                  // قسم الأوسمة (الإضافة الجديدة)
+                  // قسم الأوسمة
                   _buildBadgesSection(points, isDark),
 
                   const SizedBox(height: 20),
@@ -268,6 +269,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           trailing: "استبدل نقاطك",
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => RewardsStore(currentPoints: points)));
+                          }
+                        ),
+                        // --- [إضافة جديدة] خيار الإعدادات ---
+                        _buildProfileOption(
+                          context: context, 
+                          icon: Icons.settings_outlined, 
+                          title: "إعدادات الوكيل", 
+                          trailing: "خصوصية وسكون",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
                           }
                         ),
                         _buildProfileOption(context: context, icon: Icons.person_outline, title: "تعديل الاسم", onTap: _showEditNameDialog),

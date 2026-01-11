@@ -222,7 +222,7 @@ class _SocialLeaguesScreenState extends State<SocialLeaguesScreen> {
       ),
       child: Row(
         children: [
-          SizedBox(width: 35, child: rank <= 3 ? Icon(Icons.emoji_events, color: Colors.amber) : Text("#$rank")),
+          SizedBox(width: 35, child: rank <= 3 ? const Icon(Icons.emoji_events, color: Colors.amber) : Text("#$rank")),
           CircleAvatar(backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null, child: photoUrl == null ? Text(name[0]) : null),
           const SizedBox(width: 15),
           Expanded(
