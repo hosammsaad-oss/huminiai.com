@@ -43,8 +43,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (picked != null) {
       setState(() {
-        if (isStart) _startTime = picked;
-        else _endTime = picked;
+        if (isStart) {
+          _startTime = picked;
+        } else {
+          _endTime = picked;
+        }
       });
       // استدعاء الدالة من الـ Service لحفظ التوقيت الجديد
       await NotificationService.updateSleepSettings(_startTime.hour, _endTime.hour);

@@ -253,7 +253,7 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
       final response = await http.post(
         Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
         headers: {
-          'Authorization': 'Bearer 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', 
+          'Authorization': 'Bearer ', 
           'Content-Type': 'application/json'
         },
         body: jsonEncode({

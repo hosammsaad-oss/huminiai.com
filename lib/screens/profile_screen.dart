@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:webview_flutter/webview_flutter.dart'; // لتشغيل المتصفح داخل التطبيق
+import 'package:shared_preferences/shared_preferences.dart'; // لجلب البيانات المخزنة
 
 import 'social_leagues_screen.dart'; 
 import '../RewardsStore/rewards_store.dart'; 
@@ -15,12 +17,76 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+
+
+  
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final user = FirebaseAuth.instance.currentUser;
   File? _imageFile;
+void _startAutomatedPurchase(BuildContext context, String url, String siteName) async {
+    // جلب البيانات من الذاكرة الحقيقية
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String name = prefs.getString('user_name') ?? "مستخدم تجريبي";
+    String phone = prefs.getString('user_phone') ?? "0500000000";
+    String address = prefs.getString('user_address') ?? "العنوان الافتراضي";
 
+    final WebViewController controller = WebViewController();
+    controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+    
+    controller.setNavigationDelegate(
+      NavigationDelegate(
+        onPageFinished: (String url) {
+          controller.runJavaScript('''
+            (function() {
+              setTimeout(function() {
+                const inputs = document.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                  const id = (input.id || "").toLowerCase();
+                  const nameAttr = (input.name || "").toLowerCase();
+                  
+                  if (id.includes('name') || nameAttr.includes('name')) input.value = "$name";
+                  if (id.includes('phone') || nameAttr.includes('phone')) input.value = "$phone";
+                  if (id.includes('address') || nameAttr.includes('address')) input.value = "$address";
+                });
+              }, 2500);
+            })();
+          ''');
+        },
+      ),
+    );
+    
+    controller.loadRequest(Uri.parse(url));
+    _showWebviewModal(context, controller, siteName);
+  }
+
+  // 2. يجب أن تضيف هذه الدالة أيضاً لأن الكود يعتمد عليها لفتح النافذة
+  void _showWebviewModal(BuildContext context, WebViewController controller, String siteName) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // تجعل النافذة تأخذ أغلب الشاشة
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.all(10),
+              width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+            ),
+            Text("وكيل الشراء الذكي: $siteName", style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
+            const Divider(),
+            Expanded(child: WebViewWidget(controller: controller)),
+          ],
+        ),
+      ),
+    );
+  }
   // دالة لحساب المستوى بناءً على النقاط
   int _calculateLevel(int points) {
     if (points <= 0) return 1;
@@ -281,6 +347,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
                           }
                         ),
+
+                         _buildProfileOption(
+                           context: context,
+                           icon: Icons.auto_awesome, // أيقونة توحي بالذكاء الاصطناعي
+                           title: "وكيل الشراء الذكي",
+                           trailing: "تعبئة تلقائية",
+                           color: const Color(0xFF6B4EFF), // لون مميز
+                           onTap: () {
+                             _startAutomatedPurchase(
+      context, 
+      "https://salla.sa/login", 
+      "تجربة التعبئة الذكية"
+    );
+                             },
+                          ),
                         _buildProfileOption(context: context, icon: Icons.person_outline, title: "تعديل الاسم", onTap: _showEditNameDialog),
                         _buildProfileOption(context: context, icon: Icons.email_outlined, title: "تغيير البريد الإلكتروني", onTap: _showEditEmailDialog),
                         _buildProfileOption(context: context, icon: Icons.lock_outline, title: "تغيير كلمة المرور", onTap: _resetPassword),
