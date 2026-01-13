@@ -233,6 +233,19 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     final String remainingTasksStr = tasks.where((t) => !t.isCompleted).map((t) => t.title).join(', ');
     final String goalsStr = goals.map((g) => g.title).join(', ');
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
     final systemContext = """
 أنت 'هوميني'، وكيل ذكاء اصطناعي صارم وذكي يساعد المستخدم على تحقيق أهدافه.
 سياق المستخدم: مزاج $moodText، طاقة $energy%، مهام [$remainingTasksStr].

@@ -6,7 +6,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:confetti/confetti.dart';
 import '../widgets/smart_banner.dart';
 import '../services/context_service.dart'; 
-
 import '../providers/chat_provider.dart';
 import '../providers/life_provider.dart';
 import '../providers/goals_provider.dart'; 

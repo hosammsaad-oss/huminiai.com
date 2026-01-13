@@ -4,16 +4,19 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:geolocator/geolocator.dart'; // [إضافة] مكتبة الموقع
-import 'package:firebase_messaging/firebase_messaging.dart'; // [جديد] للإشعارات
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // [جديد] للتنبيهات المحلية
+import 'package:geolocator/geolocator.dart'; // مكتبة الموقع
+import 'package:firebase_messaging/firebase_messaging.dart'; // للإشعارات
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // للتنبيهات المحلية
 import 'dart:async';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_web/webview_flutter_web.dart';
+import 'package:flutter/foundation.dart';
 
 // استيراد الملفات الخاصة بمشروعك
 import 'screens/home_screen.dart';
 import 'firebase_options.dart'; 
 
-// --- [جديد] إعدادات الإشعارات العالمية ---
+// إعدادات الإشعارات العالمية
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 @pragma('vm:entry-point')
@@ -21,15 +24,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
-// --- مزود حالة الثيم (Theme Provider) ---
+// مزود حالة الثيم (Theme Provider)
 final themeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
 
-// [إضافة] دالة فحص وطلب إذن الموقع لضمان عمل الوعي السياقي
+// دالة فحص وطلب إذن الموقع
 Future<void> _checkLocationPermission() async {
   bool serviceEnabled;
   LocationPermission permission;
 
-  // فحص هل خدمة الـ GPS مفعلة في الهاتف
   serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) return;
 
@@ -43,23 +45,29 @@ Future<void> _checkLocationPermission() async {
 }
 
 void main() async {
+  // 1. التأكد من تهيئة روابط الويدجت
   WidgetsFlutterBinding.ensureInitialized();
 
-  // [إضافة] طلب إذن الموقع عند بدء التشغيل
+  // 2. تهيئة الـ WebView للعمل على الويب (حل مشكلة وكيل الشراء)
+  if (kIsWeb) {
+    WebViewPlatform.instance = WebWebViewPlatform();
+  }
+
+  // 3. طلب إذن الموقع عند بدء التشغيل
   await _checkLocationPermission();
 
-  // تهيئة Firebase
+  // 4. تهيئة Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // --- [جديد] تهيئة نظام الإشعارات الذكي ---
+  // 5. تهيئة نظام الإشعارات الذكي
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'humini_main_channel', // id
-    'تنبيهات هوميني الذكية', // title
-    description: 'تستخدم لإشعارات المكافآت والترتيب العالمي', // description
+    'humini_main_channel', 
+    'تنبيهات هوميني الذكية', 
+    description: 'تستخدم لإشعارات المكافآت والترتيب العالمي', 
     importance: Importance.max,
   );
 
@@ -67,14 +75,14 @@ void main() async {
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
-  // طلب إذن الإشعارات من المستخدم
+  // 6. طلب إذن الإشعارات من المستخدم
   await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
     sound: true,
   );
 
-  // تسجيل دخول مجهول لضمان استقرار الصلاحيات
+  // 7. تسجيل دخول مجهول لضمان استقرار الصلاحيات
   if (FirebaseAuth.instance.currentUser == null) {
     try {
       await FirebaseAuth.instance.signInAnonymously();
@@ -83,6 +91,7 @@ void main() async {
     }
   }
 
+  // 8. تشغيل التطبيق
   runApp(
     const ProviderScope(
       child: HuminiApp(),

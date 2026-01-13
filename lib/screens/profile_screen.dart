@@ -7,37 +7,38 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:webview_flutter/webview_flutter.dart'; // لتشغيل المتصفح داخل التطبيق
 import 'package:shared_preferences/shared_preferences.dart'; // لجلب البيانات المخزنة
-
+import 'package:humini_ai/screens/new_purchase_screen.dart';
 import 'social_leagues_screen.dart'; 
 import '../RewardsStore/rewards_store.dart'; 
 import 'settings_screen.dart'; // استيراد صفحة الإعدادات الجديدة
-
+import 'accounts_agent_screen.dart';
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
-
-
-  
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final user = FirebaseAuth.instance.currentUser;
   File? _imageFile;
-void _startAutomatedPurchase(BuildContext context, String url, String siteName) async {
+
+  // دالة وكيل الشراء الذكي
+  void _startAutomatedPurchase(BuildContext context, String url, String siteName) async {
     // جلب البيانات من الذاكرة الحقيقية
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String name = prefs.getString('user_name') ?? "مستخدم تجريبي";
     String phone = prefs.getString('user_phone') ?? "0500000000";
     String address = prefs.getString('user_address') ?? "العنوان الافتراضي";
 
+    // تهيئة الـ Controller
     final WebViewController controller = WebViewController();
     controller.setJavaScriptMode(JavaScriptMode.unrestricted);
     
     controller.setNavigationDelegate(
       NavigationDelegate(
         onPageFinished: (String url) {
+          // حقن كود التعبئة التلقائية بعد تحميل الصفحة
           controller.runJavaScript('''
             (function() {
               setTimeout(function() {
@@ -61,11 +62,11 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
     _showWebviewModal(context, controller, siteName);
   }
 
-  // 2. يجب أن تضيف هذه الدالة أيضاً لأن الكود يعتمد عليها لفتح النافذة
+  // دالة إظهار نافذة المتصفح المنبثقة
   void _showWebviewModal(BuildContext context, WebViewController controller, String siteName) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // تجعل النافذة تأخذ أغلب الشاشة
+      isScrollControlled: true, 
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
@@ -87,6 +88,7 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
       ),
     );
   }
+
   // دالة لحساب المستوى بناءً على النقاط
   int _calculateLevel(int points) {
     if (points <= 0) return 1;
@@ -244,7 +246,6 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // قسم الصورة والمستوى
                   Center(
                     child: Stack(
                       alignment: Alignment.center,
@@ -299,26 +300,61 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
                   Text(user?.email ?? "humini.user@ai.com", style: GoogleFonts.poppins(color: Colors.grey)),
                   
                   const SizedBox(height: 25),
-                  
-                  // قسم الأوسمة
                   _buildBadgesSection(points, isDark),
-
                   const SizedBox(height: 20),
-                  
-                  // بطاقة النقاط
                   _buildPointsCard(points),
-
                   const SizedBox(height: 15),
-
-                  // ملخص الحالة الذكي
                   _buildEmotionalQuickView(mood, energy, isDark),
-
                   const SizedBox(height: 20),
                   
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       children: [
+
+
+
+                        _buildProfileOption(
+  context: context,
+  icon: Icons.auto_awesome,
+  title: "وكيل الشراء الذكي",
+  color: const Color.fromARGB(255, 0, 0, 0),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NewPurchaseScreen()),
+    );
+  },
+),
+
+
+
+
+
+
+
+                 _buildProfileOption(
+  context: context,
+  icon: Icons.account_balance_wallet_rounded,
+  title: "وكيل الحسابات الذكي",
+  color: const Color.fromARGB(255, 0, 0, 0), // لون مختلف للتميز
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AccountsAgentScreen()),
+    );
+  },
+),       
+
+
+
+
+
+
+
+
+
+
                         _buildProfileOption(
                           context: context, 
                           icon: Icons.leaderboard_outlined, 
@@ -337,7 +373,6 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
                             Navigator.push(context, MaterialPageRoute(builder: (context) => RewardsStore(currentPoints: points)));
                           }
                         ),
-                        // --- [إضافة جديدة] خيار الإعدادات ---
                         _buildProfileOption(
                           context: context, 
                           icon: Icons.settings_outlined, 
@@ -348,20 +383,19 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
                           }
                         ),
 
-                         _buildProfileOption(
-                           context: context,
-                           icon: Icons.auto_awesome, // أيقونة توحي بالذكاء الاصطناعي
-                           title: "وكيل الشراء الذكي",
-                           trailing: "تعبئة تلقائية",
-                           color: const Color(0xFF6B4EFF), // لون مميز
-                           onTap: () {
-                             _startAutomatedPurchase(
-      context, 
-      "https://salla.sa/login", 
-      "تجربة التعبئة الذكية"
-    );
-                             },
-                          ),
+
+
+
+
+
+
+
+                       
+
+
+
+
+
                         _buildProfileOption(context: context, icon: Icons.person_outline, title: "تعديل الاسم", onTap: _showEditNameDialog),
                         _buildProfileOption(context: context, icon: Icons.email_outlined, title: "تغيير البريد الإلكتروني", onTap: _showEditEmailDialog),
                         _buildProfileOption(context: context, icon: Icons.lock_outline, title: "تغيير كلمة المرور", onTap: _resetPassword),
@@ -390,7 +424,7 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
     );
   }
 
-  // ويدجت عرض الأوسمة
+  // --- دوال الويدجت الفرعية المساعدة ---
   Widget _buildBadgesSection(int points, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,6 +535,14 @@ void _startAutomatedPurchase(BuildContext context, String url, String siteName) 
       ),
     );
   }
+
+
+
+
+
+
+
+
 
   Widget _buildProfileOption({required BuildContext context, required IconData icon, required String title, String? trailing, Color? color, required VoidCallback onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;

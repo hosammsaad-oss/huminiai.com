@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:humini_ai/core/constants.dart';
-
+import 'groq_service.dart';
 class GroqService {
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 60),
@@ -48,7 +48,7 @@ class GroqService {
         "https://api.groq.com/openai/v1/chat/completions",
         options: Options(
           headers: {
-            "Authorization": "Bearer ${AppConstants.groqApiKey.trim()}",
+            "Authorization": "Bearer ${AppConstants.groqAccountsKey.trim()}",
             "Content-Type": "application/json",
           },
         ),
