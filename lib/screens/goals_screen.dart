@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';    
 import '../providers/goals_provider.dart';
 
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
+
+  // تعريف userId كـ getter للحصول على المستخدم الحالي بأمان
+  String? get userId => FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,6 +41,26 @@ class GoalsScreen extends ConsumerWidget {
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
     );
+  }
+
+  // دالة الحفظ في Firestore - وضعناها داخل الكلاس لتعرف userId
+  Future<void> _setSavingsGoalInFirestore(String title, double targetAmount) async {
+    if (userId == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('goals')
+          .doc('primary_goal')
+          .set({
+        'title': title,
+        'target': targetAmount,
+        'current_saved': 0.0,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint("Error saving goal: $e");
+    }
   }
 
   Widget _buildGoalCard(BuildContext context, WidgetRef ref, Goal goal) {
@@ -124,7 +149,9 @@ class GoalsScreen extends ConsumerWidget {
   }
 
   void _showAddGoalDialog(BuildContext context, WidgetRef ref) {
-    final controller = TextEditingController();
+    final titleController = TextEditingController();
+    final amountController = TextEditingController(); // لإضافة المبلغ المستهدف
+
     showDialog(
       context: context,
       builder: (context) => Directionality(
@@ -132,15 +159,32 @@ class GoalsScreen extends ConsumerWidget {
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text("إضافة هدف إستراتيجي", style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
-          content: TextField(controller: controller, decoration: const InputDecoration(hintText: "مثلاً: تعلم البرمجة")),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: titleController, decoration: const InputDecoration(hintText: "مثلاً: شراء سيارة")),
+              const SizedBox(height: 10),
+              TextField(
+                controller: amountController, 
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(hintText: "المبلغ المستهدف (ريال)"),
+              ),
+            ],
+          ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6B4EFF)),
-              onPressed: () {
-                if (controller.text.isNotEmpty) {
-                  ref.read(goalsProvider.notifier).addGoal(controller.text);
-                  Navigator.pop(context);
+              onPressed: () async {
+                if (titleController.text.isNotEmpty) {
+                  // 1. تحديث الـ Provider المحلي (Riverpod)
+                  ref.read(goalsProvider.notifier).addGoal(titleController.text);
+                  
+                  // 2. الحفظ في السحابة (Firestore)
+                  double target = double.tryParse(amountController.text) ?? 0.0;
+                  await _setSavingsGoalInFirestore(titleController.text, target);
+                  
+                  if (context.mounted) Navigator.pop(context);
                 }
               },
               child: const Text("إضافة", style: TextStyle(color: Colors.white)),
