@@ -21,8 +21,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-
+import 'social_feed_screen.dart';
+import 'tasks_screen.dart';
 
 // استيراد الصفحات الجديدة
 import 'emotional_insights_screen.dart';
@@ -74,7 +74,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  @override
+void _showTasksBottomSheet(BuildContext context, List<TaskModel> tasks) {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "قائمة مهامك اليومية ✅",
+                style: GoogleFonts.tajawal(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF6B4EFF)),
+              ),
+              const SizedBox(height: 15),
+              if (tasks.isEmpty)
+                const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("لا توجد مهام حالياً")))
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: tasks.length,
+                    itemBuilder: (context, index) => _buildTaskItem(tasks[index]),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
+
+
+
+
+ @override
   Widget build(BuildContext context) {
     // --- الاستماع المستمر للوكيل لضمان ظهور التأثير عند منح النقاط ---
     ref.listen(chatProvider.notifier, (previous, next) {
@@ -175,8 +218,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+
+      // 🛑 تم إضافة الكود المفقود هنا 🛑
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFF6B4EFF),
+        unselectedItemColor: Colors.grey,
+        currentIndex: 0, // الصفحة الحالية هي الشات
+      onTap: (index) {
+  if (index == 1) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const SocialFeedScreen()));
+  } else if (index == 2) {
+    // 👈 الانتقال لصفحة المهام المتكاملة الجديدة
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const TasksScreen()));
+  }
+},
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline_rounded),
+            activeIcon: Icon(Icons.chat_bubble_rounded),
+            label: 'هوميني',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.public_outlined),
+            activeIcon: Icon(Icons.public_rounded),
+            label: 'المجتمع',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.task_alt_rounded),
+            label: 'المهام',
+          ),
+        ],
+      ),
     );
   }
+
+
+
+
+
 
   Widget _buildMoodSelector() {
     return Container(
@@ -315,6 +396,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   }),
                   _buildDrawerTile(Icons.emoji_events_outlined, "ساحة المنافسة 🏆", () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const SocialLeaguesScreen()));
+                  }),
+                  _buildDrawerTile(Icons.public_rounded, "ساحة المجتمع 🌎", () {
+                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SocialFeedScreen()));
                   }),
                   const Divider(),
                   _buildDrawerTile(Icons.insights_rounded, "تحليل المشاعر ✨", () {
@@ -521,6 +605,9 @@ Widget _buildChatList(List<ChatMessage> messages) {
     );
   }
 }
+
+
+
 
 // --- كلاس تأثير النجاح المنبثق ---
 class SuccessPointsOverlay {

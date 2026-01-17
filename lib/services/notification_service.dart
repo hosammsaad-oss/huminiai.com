@@ -105,4 +105,36 @@ class NotificationService {
     if (scheduledDate.isBefore(now)) scheduledDate = scheduledDate.add(const Duration(days: 1));
     return scheduledDate;
   }
+  // --- [إضافة جديدة] دالة لجدولة تذكير بمهام اليوم المتبقية ---
+  static Future<void> scheduleTaskReminder(int remainingTasks) async {
+    if (remainingTasks == 0) return; // لا ترسل تنبيهاً إذا انتهت كل المهام
+
+    await _notificationsPlugin.zonedSchedule(
+      100, // ID مميز لتنبيه المهام
+      'بقي القليل على الإنجاز! 🎯',
+      'لديك $remainingTasks مهام متبقية لليوم. هوميني يشجعك على إنهائها الآن.',
+      _nextInstanceOfTime(18, 0), // جدولتها للساعة 6 مساءً مثلاً
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'task_reminders', 'تذكيرات المهام',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  // دالة مساعدة لتحديد الوقت بدقة
+  static tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+    return scheduledDate;
+  }
 }

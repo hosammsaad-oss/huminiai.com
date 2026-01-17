@@ -12,6 +12,14 @@ import 'social_leagues_screen.dart';
 import '../RewardsStore/rewards_store.dart'; 
 import 'settings_screen.dart'; // استيراد صفحة الإعدادات الجديدة
 import 'accounts_agent_screen.dart';
+import '../providers/life_provider.dart';
+
+
+
+
+
+
+
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -212,6 +220,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+
+  // جلب قائمة المهام من الـ Provider
+  final tasks = ref.watch(lifeProvider);
+  // حساب المهام المنجزة والمتبقية
+  final totalCompletedTasks = tasks.where((t) => t.isCompleted).length;
+  final totalPendingTasks = tasks.length - totalCompletedTasks;
+
+
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -298,6 +315,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 15),
                   Text(user?.displayName ?? "مستخدم هيومني", style: GoogleFonts.tajawal(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                   Text(user?.email ?? "humini.user@ai.com", style: GoogleFonts.poppins(color: Colors.grey)),
+
+                  const SizedBox(height: 25),
+                  // استدعاء ويدجت الإحصائيات التي أضفناها في الخطوة السابقة
+                  _buildTaskStatsRow(totalCompletedTasks, totalPendingTasks),
+                  const SizedBox(height: 20),
+
                   
                   const SizedBox(height: 25),
                   _buildBadgesSection(points, isDark),
@@ -423,6 +446,68 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
   }
+
+
+
+Widget _buildTaskStatsRow(int completed, int pending) {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20),
+    padding: const EdgeInsets.symmetric(vertical: 15),
+    decoration: BoxDecoration(
+      color: const Color(0xFF6B4EFF).withOpacity(0.05),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildStatItem("المنجزة", completed.toString(), Colors.green),
+        Container(width: 1, height: 30, color: Colors.grey[300]),
+        _buildStatItem("قيد العمل", pending.toString(), Colors.orange),
+        Container(width: 1, height: 30, color: Colors.grey[300]),
+        _buildStatItem("النجاح", "${(completed + pending == 0) ? 0 : (completed / (completed + pending) * 100).toInt()}%", Colors.blue),
+      ],
+    ),
+  );
+}
+
+Widget _buildStatItem(String label, String value, Color color) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        label,
+        style: GoogleFonts.tajawal(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey[600],
+        ),
+      ),
+    ],
+  );
+}
+
+
+
+
+
+
+
 
   // --- دوال الويدجت الفرعية المساعدة ---
   Widget _buildBadgesSection(int points, bool isDark) {

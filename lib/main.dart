@@ -15,7 +15,7 @@ import 'package:workmanager/workmanager.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // نستخدم التسمية tel لضمان عدم تداخل الأنواع
 import 'package:telephony/telephony.dart' as tel;
-
+import 'services/notification_service.dart';
 import 'screens/home_screen.dart';
 import 'firebase_options.dart'; 
 import 'services/groq_service.dart';
@@ -103,6 +103,10 @@ Future<void> _checkLocationPermission() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 1. تهيئة نظام التنبيهات (Notification Service)
+  await NotificationService.init(); 
+
+  // 2. تهيئة Workmanager للمهام الخلفية
   try {
     await Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
     
@@ -122,11 +126,13 @@ void main() async {
     debugPrint("Workmanager Init Error: $e");
   }
 
+  // 3. إعدادات الويب والموقع و Firebase
   if (kIsWeb) WebViewPlatform.instance = WebWebViewPlatform();
   await _checkLocationPermission();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+  // 4. إعداد قناة التنبيهات لـ Android
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'humini_main_channel', 'تنبيهات هوميني الذكية', importance: Importance.max,
   );
@@ -134,6 +140,7 @@ void main() async {
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
+  // 5. تسجيل الدخول المجهول إذا لم يوجد مستخدم
   if (FirebaseAuth.instance.currentUser == null) {
     try {
       await FirebaseAuth.instance.signInAnonymously();
@@ -142,8 +149,12 @@ void main() async {
     }
   }
 
+  // 6. تشغيل التطبيق النهائي
   runApp(const ProviderScope(child: HuminiApp()));
 }
+
+  
+
 
 class HuminiApp extends ConsumerWidget {
   const HuminiApp({super.key});
@@ -215,8 +226,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             const SizedBox(height: 50),
             const CircularProgressIndicator(color: Colors.white),
           ],
+
+
+          
         ),
       ),
     );
   }
 }
+
