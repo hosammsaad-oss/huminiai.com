@@ -12,7 +12,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_web/webview_flutter_web.dart';
 import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart'; 
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 // نستخدم التسمية tel لضمان عدم تداخل الأنواع
 import 'package:telephony/telephony.dart' as tel;
 

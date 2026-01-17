@@ -14,6 +14,16 @@ import 'analytics_screen.dart';
 import 'goals_screen.dart'; 
 import 'profile_screen.dart'; 
 import '../services/notification_service.dart'; 
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+
+
 // استيراد الصفحات الجديدة
 import 'emotional_insights_screen.dart';
 import 'lucky_chest_screen.dart';
@@ -418,40 +428,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildChatList(List<ChatMessage> messages) {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(15),
-      itemCount: messages.length,
-      itemBuilder: (context, index) {
-        final m = messages[index];
-        return Align(
-          alignment: m.isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-            decoration: BoxDecoration(
-              color: m.isUser ? const Color(0xFF6B4EFF) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.grey[200]),
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(m.isUser ? 18 : 0),
-                bottomRight: Radius.circular(m.isUser ? 0 : 18),
-              ),
+// أضفنا (List<ChatMessage> messages) لتتوافق مع استدعائك في الـ body
+Widget _buildChatList(List<ChatMessage> messages) {
+  return ListView.builder(
+    controller: _scrollController, // أضفنا السكرول كنترول لضمان عمل _scrollToBottom
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+    itemCount: messages.length,
+    itemBuilder: (context, index) {
+      final m = messages[index];
+      
+      return Align(
+        alignment: m.isUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.all(12),
+          constraints: BoxConstraints(
+            // تجعل العرض مستجيباً (Responsive) للويب والموبايل
+            maxWidth: MediaQuery.of(context).size.width * (kIsWeb ? 0.6 : 0.8),
+          ),
+          decoration: BoxDecoration(
+            color: m.isUser 
+                ? const Color(0xFF6B4EFF) // لون متناسق مع الثيم الخاص بك
+                : (Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200]),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(15),
+              topRight: const Radius.circular(15),
+              bottomLeft: Radius.circular(m.isUser ? 15 : 0),
+              bottomRight: Radius.circular(m.isUser ? 0 : 15),
             ),
-            child: MarkdownBody(
-              data: m.text,
-              styleSheet: MarkdownStyleSheet(
-                p: GoogleFonts.tajawal(color: m.isUser ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87)),
+          ),
+          child: MarkdownBody(
+            data: m.text,
+            styleSheet: MarkdownStyleSheet(
+              p: GoogleFonts.tajawal(
+                fontSize: 16,
+                color: m.isUser 
+                    ? Colors.white 
+                    : (Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black87),
+              ),
+              // تحسين شكل الكود البرمجي إذا أرسله الـ AI
+              code: GoogleFonts.firaCode(
+                backgroundColor: Colors.black12,
+                fontSize: 14,
               ),
             ),
           ),
-        );
-      },
-    );
-  }
-
+        ),
+      );
+    },
+  );
+}
   Widget _buildWelcomeHero() {
     return Center(
       child: Column(
