@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'social_feed_screen.dart';
+
 class SocialFeedScreen extends ConsumerWidget {
   const SocialFeedScreen({super.key});
 
@@ -16,7 +16,10 @@ class SocialFeedScreen extends ConsumerWidget {
         elevation: 0,
         title: Text(
           "مجتمع المنجزين ✨",
-          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.tajawal(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF6B4EFF),
@@ -26,7 +29,7 @@ class SocialFeedScreen extends ConsumerWidget {
             onPressed: () {
               // يمكن إضافة صفحة المتصدرين هنا لاحقاً
             },
-          )
+          ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -36,7 +39,9 @@ class SocialFeedScreen extends ConsumerWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF6B4EFF)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF6B4EFF)),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return _buildEmptyState();
@@ -56,7 +61,13 @@ class SocialFeedScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFF6B4EFF),
         icon: const Icon(Icons.edit_note_rounded, color: Colors.white),
-        label: Text("شارك إنجازك", style: GoogleFonts.tajawal(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text(
+          "شارك إنجازك",
+          style: GoogleFonts.tajawal(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         onPressed: () => _showCreatePostDialog(context),
       ),
     );
@@ -76,7 +87,7 @@ class SocialFeedScreen extends ConsumerWidget {
             color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -87,12 +98,18 @@ class SocialFeedScreen extends ConsumerWidget {
               backgroundColor: const Color(0xFF6B4EFF).withOpacity(0.1),
               child: Text(
                 (post['authorName'] ?? "M")[0].toUpperCase(),
-                style: const TextStyle(color: Color(0xFF6B4EFF), fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Color(0xFF6B4EFF),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             title: Text(
               post['authorName'] ?? "منجز مجهول",
-              style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 14),
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
             subtitle: Text(timeAgo, style: const TextStyle(fontSize: 10)),
             trailing: const Icon(Icons.more_vert, size: 18),
@@ -101,7 +118,11 @@ class SocialFeedScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               post['content'] ?? "",
-              style: GoogleFonts.tajawal(fontSize: 15, height: 1.5, color: Colors.black87),
+              style: GoogleFonts.tajawal(
+                fontSize: 15,
+                height: 1.5,
+                color: Colors.black87,
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -114,9 +135,17 @@ class SocialFeedScreen extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildActionBtn(Icons.local_fire_department_rounded, "عاش", Colors.orange),
+                _buildActionBtn(
+                  Icons.local_fire_department_rounded,
+                  "عاش",
+                  Colors.orange,
+                ),
                 _buildActionBtn(Icons.auto_awesome, "ملهم", Colors.amber),
-                _buildActionBtn(Icons.chat_bubble_outline_rounded, "تعليق", Colors.blueGrey),
+                _buildActionBtn(
+                  Icons.chat_bubble_outline_rounded,
+                  "تعليق",
+                  Colors.blueGrey,
+                ),
               ],
             ),
           ),
@@ -130,7 +159,10 @@ class SocialFeedScreen extends ConsumerWidget {
     return TextButton.icon(
       onPressed: () {}, // سيتم إضافة منطق التفاعل لاحقاً
       icon: Icon(icon, size: 20, color: color),
-      label: Text(label, style: GoogleFonts.tajawal(fontSize: 13, color: color)),
+      label: Text(
+        label,
+        style: GoogleFonts.tajawal(fontSize: 13, color: color),
+      ),
     );
   }
 
@@ -139,7 +171,7 @@ class SocialFeedScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-         Icon(Icons.people_alt_outlined, size: 80, color: Colors.grey[300]),
+          Icon(Icons.people_alt_outlined, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             "كن أول من ينشر إنجازه اليوم! ✨",
@@ -158,7 +190,9 @@ class SocialFeedScreen extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -171,12 +205,18 @@ class SocialFeedScreen extends ConsumerWidget {
               Container(
                 width: 50,
                 height: 5,
-                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               const SizedBox(height: 20),
               Text(
                 "بصمة نجاح جديدة 🚀",
-                style: GoogleFonts.tajawal(fontSize: 20, fontWeight: FontWeight.bold),
+                style: GoogleFonts.tajawal(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 20),
               TextField(
@@ -203,7 +243,9 @@ class SocialFeedScreen extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6B4EFF),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                   onPressed: () async {
                     if (postController.text.trim().isNotEmpty) {
@@ -213,7 +255,11 @@ class SocialFeedScreen extends ConsumerWidget {
                   },
                   child: Text(
                     "نشر في المجتمع ✨",
-                    style: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: GoogleFonts.tajawal(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

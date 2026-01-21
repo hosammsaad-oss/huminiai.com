@@ -10,10 +10,10 @@ class TaskModel {
   final String category; // تم إضافة حقل التصنيف
 
   TaskModel({
-    required this.id, 
-    required this.title, 
+    required this.id,
+    required this.title,
     this.isCompleted = false, // تم إضافة الفاصلة هنا لإصلاح الخطأ
-    this.category = 'daily',  // القيمة الافتراضية يومية
+    this.category = 'daily', // القيمة الافتراضية يومية
   });
 }
 
@@ -25,6 +25,110 @@ class LifeNotifier extends StateNotifier<List<TaskModel>> {
 
   LifeNotifier() : super([]) {
     _loadTasks();
+  }
+  String generateWeeklyReport() {
+    final tasks = state;
+    if (tasks.isEmpty) return "ابدأ بإضافة مهامك لكي يحلل هيوميني أداءك! ✨";
+
+    final completedTasks = tasks.where((t) => t.isCompleted).toList();
+    final pendingTasks = tasks.where((t) => !t.isCompleted).toList();
+
+    if (completedTasks.isEmpty) return "بانتظار إنجازك الأول اليوم! 🔥";
+
+    // 1. تحليل الفئات الأكثر إنجازاً
+    Map<String, int> counts = {};
+    for (var task in completedTasks) {
+      counts[task.category] = (counts[task.category] ?? 0) + 1;
+    }
+    var topCategory = counts.entries
+        .reduce((a, b) => a.value > b.value ? a : b)
+        .key;
+
+    // 2. تحليل التعثر (المهام غير المكتملة)
+    String struggleAdvice = "";
+    if (pendingTasks.isNotEmpty) {
+      Map<String, int> pendingCounts = {};
+      for (var task in pendingTasks) {
+        pendingCounts[task.category] = (pendingCounts[task.category] ?? 0) + 1;
+      }
+      var struggleCategory = pendingCounts.entries
+          .reduce((a, b) => a.value > b.value ? a : b)
+          .key;
+
+      // تقديم نصيحة مخصصة بناءً على فئة التعثر
+      switch (struggleCategory) {
+        case 'تطور':
+          struggleAdvice =
+              "لاحظت تعثراً في جانب التطور، جرب تخصيص 10 دقائق فقط للقراءة الآن.";
+          break;
+        case 'سرعة':
+          struggleAdvice =
+              "مهام السرعة متراكمة، ابدأ بأصغر مهمة لكسر حاجز التأجيل.";
+          break;
+        case 'التزام':
+          struggleAdvice =
+              "الانضباط يحتاج طاقة، تأكد من أخذ قسط من الراحة لتستعيد تركيزك.";
+          break;
+        default:
+          struggleAdvice =
+              "لديك مهام معلقة، إنهاء واحدة منها الآن سيحفز هرمون الإنجاز لديك!";
+      }
+    }
+
+    String generateWeeklyReport() {
+      final tasks = state;
+      if (tasks.isEmpty) return "ابدأ بإضافة مهامك لكي يحلل هيوميني أداءك! ✨";
+
+      final completedTasks = tasks.where((t) => t.isCompleted).toList();
+      final pendingTasks = tasks.where((t) => !t.isCompleted).toList();
+
+      if (completedTasks.isEmpty) return "بانتظار إنجازك الأول اليوم! 🔥";
+
+      // 1. تحليل الفئات الأكثر إنجازاً
+      Map<String, int> counts = {};
+      for (var task in completedTasks) {
+        counts[task.category] = (counts[task.category] ?? 0) + 1;
+      }
+      var topCategory = counts.entries
+          .reduce((a, b) => a.value > b.value ? a : b)
+          .key;
+
+      // 2. تحليل التعثر (المهام غير المكتملة)
+      String struggleAdvice = "";
+      if (pendingTasks.isNotEmpty) {
+        Map<String, int> pendingCounts = {};
+        for (var task in pendingTasks) {
+          pendingCounts[task.category] =
+              (pendingCounts[task.category] ?? 0) + 1;
+        }
+        var struggleCategory = pendingCounts.entries
+            .reduce((a, b) => a.value > b.value ? a : b)
+            .key;
+
+        // تقديم نصيحة مخصصة بناءً على فئة التعثر
+        switch (struggleCategory) {
+          case 'تطور':
+            struggleAdvice =
+                "لاحظت تعثراً في جانب التطور، جرب تخصيص 10 دقائق فقط للقراءة الآن.";
+            break;
+          case 'سرعة':
+            struggleAdvice =
+                "مهام السرعة متراكمة، ابدأ بأصغر مهمة لكسر حاجز التأجيل.";
+            break;
+          case 'التزام':
+            struggleAdvice =
+                "الانضباط يحتاج طاقة، تأكد من أخذ قسط من الراحة لتستعيد تركيزك.";
+            break;
+          default:
+            struggleAdvice =
+                "لديك مهام معلقة، إنهاء واحدة منها الآن سيحفز هرمون الإنجاز لديك!";
+        }
+      }
+
+      return "أنت متميز اليوم في جانب ($topCategory)! 🌟. $struggleAdvice";
+    }
+
+    return "أنت متميز اليوم في جانب ($topCategory)! 🌟. $struggleAdvice";
   }
 
   // 2. تحديث قراءة البيانات لتشمل الـ category
@@ -39,27 +143,24 @@ class LifeNotifier extends StateNotifier<List<TaskModel>> {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) {
-      state = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return TaskModel(
-          id: doc.id,
-          title: data['title'] ?? '',
-          isCompleted: data['isCompleted'] ?? false,
-          category: data['category'] ?? 'daily', // قراءة التصنيف من Firestore
-        );
-      }).toList();
-    });
+          state = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return TaskModel(
+              id: doc.id,
+              title: data['title'] ?? '',
+              isCompleted: data['isCompleted'] ?? false,
+              category:
+                  data['category'] ?? 'daily', // قراءة التصنيف من Firestore
+            );
+          }).toList();
+        });
   }
 
   // 3. تحديث دالة الإضافة لتخزين التصنيف (يومي/أسبوعي/شهري)
   Future<void> addTask(String title, {String category = 'daily'}) async {
     final user = _auth.currentUser;
     if (user == null) return;
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .add({
+    await _firestore.collection('users').doc(user.uid).collection('tasks').add({
       'title': title,
       'isCompleted': false,
       'category': category, // تخزين التصنيف في Firestore
@@ -71,7 +172,7 @@ class LifeNotifier extends StateNotifier<List<TaskModel>> {
   Future<void> toggleTask(String taskId, bool currentStatus) async {
     final user = _auth.currentUser;
     if (user == null) return;
-    
+
     await _firestore
         .collection('users')
         .doc(user.uid)
@@ -110,7 +211,9 @@ class LifeNotifier extends StateNotifier<List<TaskModel>> {
   }
 }
 
-final lifeProvider = StateNotifierProvider<LifeNotifier, List<TaskModel>>((ref) => LifeNotifier());
+final lifeProvider = StateNotifierProvider<LifeNotifier, List<TaskModel>>(
+  (ref) => LifeNotifier(),
+);
 
 final userXPProvider = StreamProvider<int>((ref) {
   return ref.watch(lifeProvider.notifier).watchUserXP();

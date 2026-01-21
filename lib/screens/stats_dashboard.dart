@@ -2,14 +2,70 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/life_provider.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:fl_chart/fl_chart.dart'; // <--- أضف هذا السطر
 
 class StatsDashboard extends ConsumerWidget {
   const StatsDashboard({super.key});
+  // --- أضف هاتين الدالتين في نهاية الكلاس قبل القوس الأخير } ---
+
+  Widget _buildRadarChart(List<TaskModel> tasks) {
+    return Container(
+      height: 250,
+      padding: const EdgeInsets.all(10),
+      child: RadarChart(
+        RadarChartData(
+          dataSets: [
+            RadarDataSet(
+              fillColor: Colors.deepPurple.withOpacity(0.4),
+              borderColor: Colors.deepPurple,
+              dataEntries: [
+                RadarEntry(value: _getScore(tasks, 'تطور')),
+                RadarEntry(value: _getScore(tasks, 'التزام')),
+                RadarEntry(value: _getScore(tasks, 'سرعة')),
+                RadarEntry(value: _getScore(tasks, 'تواصل')),
+                RadarEntry(value: _getScore(tasks, 'دقة')),
+              ],
+            ),
+          ],
+          getTitle: (index, angle) {
+            switch (index) {
+              case 0:
+                return const RadarChartTitle(text: 'تطور');
+              case 1:
+                return const RadarChartTitle(text: 'التزام');
+              case 2:
+                return const RadarChartTitle(text: 'سرعة');
+              case 3:
+                return const RadarChartTitle(text: 'تواصل');
+              case 4:
+                return const RadarChartTitle(text: 'دقة');
+              default:
+                return const RadarChartTitle(text: '');
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  double _getScore(List<TaskModel> tasks, String category) {
+    final categoryTasks = tasks.where((t) => t.category == category).toList();
+    if (categoryTasks.isEmpty) return 2.0;
+    final completed = categoryTasks.where((t) => t.isCompleted).length;
+    return (completed / categoryTasks.length) * 10;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(lifeProvider);
-    
+    // ابحث عن Column وأضف هذا السطر بداخله:
+    children:
+    [
+      _buildRadarChart(tasks), // <--- هذا يستدعي الرسم البياني
+      const SizedBox(height: 20),
+      // ... باقي العناصر مثل بطاقة التحليل
+    ];
     // حساب البيانات الحقيقية من قاعدة البيانات
     int total = tasks.length;
     int completed = tasks.where((t) => t.isCompleted).length;
@@ -19,8 +75,13 @@ class StatsDashboard extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text("لوحة التحكم والإنجاز", 
-          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: Text(
+          "لوحة التحكم والإنجاز",
+          style: GoogleFonts.tajawal(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -39,17 +100,37 @@ class StatsDashboard extends ConsumerWidget {
             // 2. شبكة الإحصائيات السريعة
             Row(
               children: [
-                _buildStatCard("المنجزة", "$completed", Icons.check_circle_outline, Colors.green),
+                _buildStatCard(
+                  "المنجزة",
+                  "$completed",
+                  Icons.check_circle_outline,
+                  Colors.green,
+                ),
                 const SizedBox(width: 15),
-                _buildStatCard("المتبقية", "$remaining", Icons.hourglass_empty, Colors.orange),
+                _buildStatCard(
+                  "المتبقية",
+                  "$remaining",
+                  Icons.hourglass_empty,
+                  Colors.orange,
+                ),
               ],
             ),
             const SizedBox(height: 15),
             Row(
               children: [
-                _buildStatCard("الإجمالي", "$total", Icons.list_alt, Colors.blue),
+                _buildStatCard(
+                  "الإجمالي",
+                  "$total",
+                  Icons.list_alt,
+                  Colors.blue,
+                ),
                 const SizedBox(width: 15),
-                _buildStatCard("الاستمرارية", "5 أيام", Icons.local_fire_department, Colors.red),
+                _buildStatCard(
+                  "الاستمرارية",
+                  "5 أيام",
+                  Icons.local_fire_department,
+                  Colors.red,
+                ),
               ],
             ),
             const SizedBox(height: 25),
@@ -68,15 +149,27 @@ class StatsDashboard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20),
+        ],
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("مؤشر الإنجاز الكلي", style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 16)),
-              Icon(Icons.pie_chart_rounded, color: Colors.purple[300], size: 30),
+              Text(
+                "مؤشر الإنجاز الكلي",
+                style: GoogleFonts.tajawal(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Icon(
+                Icons.pie_chart_rounded,
+                color: Colors.purple[300],
+                size: 30,
+              ),
             ],
           ),
           const SizedBox(height: 25),
@@ -91,23 +184,36 @@ class StatsDashboard extends ConsumerWidget {
                   value: progress,
                   strokeWidth: 15,
                   backgroundColor: Colors.grey[100],
-                  color: progress > 0.7 ? Colors.greenAccent[700] : Colors.deepPurpleAccent,
+                  color: progress > 0.7
+                      ? Colors.greenAccent[700]
+                      : Colors.deepPurpleAccent,
                 ),
               ),
               Column(
                 children: [
                   Text(
                     "${(progress * 100).toInt()}%",
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  Text("مكتمل", style: GoogleFonts.tajawal(color: Colors.grey, fontSize: 14)),
+                  Text(
+                    "مكتمل",
+                    style: GoogleFonts.tajawal(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 25),
           Text(
-            progress >= 0.8 ? "أداء مذهل! أنت في المنطقة الخضراء 🌟" : "كل خطوة صغيرة تقربك من هدفك الكبير.",
+            progress >= 0.8
+                ? "أداء مذهل! أنت في المنطقة الخضراء 🌟"
+                : "كل خطوة صغيرة تقربك من هدفك الكبير.",
             textAlign: TextAlign.center,
             style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 13),
           ),
@@ -116,7 +222,12 @@ class StatsDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -129,8 +240,14 @@ class StatsDashboard extends ConsumerWidget {
           children: [
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 10),
-            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text(title, style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 13)),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              title,
+              style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 13),
+            ),
           ],
         ),
       ),
@@ -145,11 +262,17 @@ class StatsDashboard extends ConsumerWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("توزيع خطة العمل", style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
+          Text(
+            "توزيع خطة العمل",
+            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 15),
           _buildTinyBar("المهام اليومية", daily, Colors.blue),
           _buildTinyBar("المهام الأسبوعية", weekly, Colors.purple),
@@ -164,12 +287,71 @@ class StatsDashboard extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(label, style: GoogleFonts.tajawal(fontSize: 12))),
-          Expanded(flex: 7, child: LinearProgressIndicator(value: count / 10, color: color, backgroundColor: Colors.grey[100])),
+          Expanded(
+            flex: 3,
+            child: Text(label, style: GoogleFonts.tajawal(fontSize: 12)),
+          ),
+          Expanded(
+            flex: 7,
+            child: LinearProgressIndicator(
+              value: count / 10,
+              color: color,
+              backgroundColor: Colors.grey[100],
+            ),
+          ),
           const SizedBox(width: 10),
           Text("$count", style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
+}
+
+Widget _buildRadarChart(List<TaskModel> tasks) {
+  // حساب البيانات للرسم البياني (نسبة الإنجاز لكل فئة)
+  return Container(
+    height: 250,
+    padding: const EdgeInsets.all(10),
+    child: RadarChart(
+      RadarChartData(
+        dataSets: [
+          RadarDataSet(
+            fillColor: Colors.deepPurple.withOpacity(0.4),
+            borderColor: Colors.deepPurple,
+            entryRadius: 3,
+            dataEntries: [
+              RadarEntry(value: _getScore(tasks, 'تطور')),
+              RadarEntry(value: _getScore(tasks, 'التزام')),
+              RadarEntry(value: _getScore(tasks, 'سرعة')),
+              RadarEntry(value: _getScore(tasks, 'تواصل')),
+              RadarEntry(value: _getScore(tasks, 'دقة')),
+            ],
+          ),
+        ],
+        getTitle: (index, angle) {
+          switch (index) {
+            case 0:
+              return RadarChartTitle(text: 'تطور');
+            case 1:
+              return RadarChartTitle(text: 'التزام');
+            case 2:
+              return RadarChartTitle(text: 'سرعة');
+            case 3:
+              return RadarChartTitle(text: 'تواصل');
+            case 4:
+              return RadarChartTitle(text: 'دقة');
+            default:
+              return const RadarChartTitle(text: '');
+          }
+        },
+      ),
+    ),
+  );
+}
+
+double _getScore(List<TaskModel> tasks, String category) {
+  final categoryTasks = tasks.where((t) => t.category == category).toList();
+  if (categoryTasks.isEmpty) return 0.0;
+  final completed = categoryTasks.where((t) => t.isCompleted).length;
+  return (completed / categoryTasks.length) * 10; // مقياس من 10
 }
