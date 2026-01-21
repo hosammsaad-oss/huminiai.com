@@ -15,6 +15,8 @@ class TaskModel {
     this.isCompleted = false, // تم إضافة الفاصلة هنا لإصلاح الخطأ
     this.category = 'daily', // القيمة الافتراضية يومية
   });
+
+  get hqiCategory => null;
 }
 
 class LifeNotifier extends StateNotifier<List<TaskModel>> {
@@ -217,4 +219,12 @@ final lifeProvider = StateNotifierProvider<LifeNotifier, List<TaskModel>>(
 
 final userXPProvider = StreamProvider<int>((ref) {
   return ref.watch(lifeProvider.notifier).watchUserXP();
+});
+
+final userRankProvider = FutureProvider<String>((ref) async {
+  final tasks = ref.watch(lifeProvider);
+  int completed = tasks.where((t) => t.isCompleted).length;
+  if (completed > 10) return "بطل خارق ⚡";
+  if (completed > 5) return "منجز محترف 🔥";
+  return "مبتدئ طموح 🌱";
 });

@@ -50,27 +50,16 @@ class StatsDashboard extends ConsumerWidget {
       pixelRatio: 3.0, // جودة أعلى للصورة الملتقطة
     );
 
-    if (imageBytes != null) {
-      final directory = await getApplicationDocumentsDirectory();
-      final imagePath = await File(
-        '${directory.path}/humaini_report.png',
-      ).create();
-      await imagePath.writeAsBytes(imageBytes);
+    final directory = await getApplicationDocumentsDirectory();
+    final imagePath = await File(
+      '${directory.path}/humaini_report.png',
+    ).create();
+    await imagePath.writeAsBytes(imageBytes);
 
-      // مشاركة الصورة
-      await Share.shareXFiles([
-        XFile(imagePath.path),
-      ], text: "إنجازاتي هذا الأسبوع مع هيوميني! 🌟\n#هيوميني #إنجازاتي");
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "عذراً، حدث خطأ أثناء إعداد التقرير للمشاركة.",
-            style: GoogleFonts.tajawal(),
-          ),
-        ),
-      );
-    }
+    // مشاركة الصورة
+    await Share.shareXFiles([
+      XFile(imagePath.path),
+    ], text: "إنجازاتي هذا الأسبوع مع هيوميني! 🌟\n#هيوميني #إنجازاتي");
   }
 
   @override

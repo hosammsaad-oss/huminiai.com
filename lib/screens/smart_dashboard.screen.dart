@@ -80,10 +80,11 @@ class _SmartDashboardScreenState extends ConsumerState<SmartDashboardScreen> {
       await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
         'photoURL': base64Image,
       }, SetOptions(merge: true));
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("تم تحديث الصورة بنجاح! ✅")),
         );
+      }
     } catch (e) {
       debugPrint("Error uploading: $e");
     }
@@ -283,8 +284,9 @@ class _SmartDashboardScreenState extends ConsumerState<SmartDashboardScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         String? photo;
-        if (snapshot.hasData && snapshot.data!.exists)
+        if (snapshot.hasData && snapshot.data!.exists) {
           photo = (snapshot.data!.data() as Map<String, dynamic>)['photoURL'];
+        }
         return CircleAvatar(
           radius: 40,
           backgroundColor: Colors.white24,

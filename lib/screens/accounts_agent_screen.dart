@@ -1072,7 +1072,7 @@ class _AccountsAgentScreenState extends State<AccountsAgentScreen> {
   }
 
   List<PieChartSectionData> _getChartSections(List<Transaction> transList) {
-    if (transList.isEmpty)
+    if (transList.isEmpty) {
       return [
         PieChartSectionData(
           color: Colors.grey,
@@ -1081,6 +1081,7 @@ class _AccountsAgentScreenState extends State<AccountsAgentScreen> {
           radius: 40,
         ),
       ];
+    }
     Map<String, double> data = {};
     for (var t in transList) {
       data[t.category] = (data[t.category] ?? 0) + t.amount;
@@ -1167,8 +1168,9 @@ class _AccountsAgentScreenState extends State<AccountsAgentScreen> {
   }
 
   Widget _buildRecentTransactions(List<Transaction> transList) {
-    if (transList.isEmpty)
+    if (transList.isEmpty) {
       return const Center(child: Text("لا توجد عمليات مسجلة"));
+    }
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

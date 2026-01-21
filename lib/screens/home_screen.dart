@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:confetti/confetti.dart';
+import 'package:humini_ai/screens/stats_dashboard.dart';
 import '../widgets/smart_banner.dart';
 import '../services/context_service.dart';
 import '../providers/chat_provider.dart';
@@ -17,7 +18,7 @@ import '../services/notification_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'social_feed_screen.dart';
 import 'tasks_screen.dart';
-
+import 'smart_dashboard.screen.dart';
 // استيراد الصفحات الجديدة
 import 'emotional_insights_screen.dart';
 import 'lucky_chest_screen.dart';
@@ -149,6 +150,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             color: Colors.white,
           ),
         ),
+
         actions: [
           userXP.when(
             data: (xp) => Center(
@@ -178,6 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+
       body: Stack(
         children: [
           Directionality(
@@ -186,6 +189,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 const SmartContextBanner(),
 
+                ListTile(
+                  leading: Icon(Icons.analytics),
+                  title: Text("لوحة التحكم"),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => StatsDashboard()),
+                    );
+                  },
+                ),
                 if (contextState.energyLevel < 100)
                   Padding(
                     padding: const EdgeInsets.symmetric(
