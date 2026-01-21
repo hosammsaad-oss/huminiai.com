@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "459439843528",
+    "project_id": "huminiai",
+    "storage_bucket": "huminiai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:459439843528:android:bf755a49d6b459ad549dfd",
+        "android_client_info": {
+          "package_name": "com.example.humini_ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "459439843528-pqnrjgar0hv1em2svac72gqv28c072ej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB45DsOVGCFmCR4USA-0d4U_-LCGK5pjQ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "459439843528-pqnrjgar0hv1em2svac72gqv28c072ej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "459439843528-g9kgie0dmlcet95qev3n018sfi6uk11p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.huminiAi"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
