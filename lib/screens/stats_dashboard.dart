@@ -2,71 +2,82 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/life_provider.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:fl_chart/fl_chart.dart'; // <--- أضف هذا السطر
+import 'package:screenshot/screenshot.dart'; // استيراد حزمة لقطة الشاشة
+import 'package:share_plus/share_plus.dart'; // استيراد حزمة المشاركة
+import 'package:path_provider/path_provider.dart'; // لحفظ الصورة مؤقتاً
+import 'dart:io'; // للتعامل مع الملفات
 
 class StatsDashboard extends ConsumerWidget {
   const StatsDashboard({super.key});
-  // --- أضف هاتين الدالتين في نهاية الكلاس قبل القوس الأخير } ---
 
-  Widget _buildRadarChart(List<TaskModel> tasks) {
-    return Container(
-      height: 250,
-      padding: const EdgeInsets.all(10),
-      child: RadarChart(
-        RadarChartData(
-          dataSets: [
-            RadarDataSet(
-              fillColor: Colors.deepPurple.withOpacity(0.4),
-              borderColor: Colors.deepPurple,
-              dataEntries: [
-                RadarEntry(value: _getScore(tasks, 'تطور')),
-                RadarEntry(value: _getScore(tasks, 'التزام')),
-                RadarEntry(value: _getScore(tasks, 'سرعة')),
-                RadarEntry(value: _getScore(tasks, 'تواصل')),
-                RadarEntry(value: _getScore(tasks, 'دقة')),
-              ],
-            ),
-          ],
-          getTitle: (index, angle) {
-            switch (index) {
-              case 0:
-                return const RadarChartTitle(text: 'تطور');
-              case 1:
-                return const RadarChartTitle(text: 'التزام');
-              case 2:
-                return const RadarChartTitle(text: 'سرعة');
-              case 3:
-                return const RadarChartTitle(text: 'تواصل');
-              case 4:
-                return const RadarChartTitle(text: 'دقة');
-              default:
-                return const RadarChartTitle(text: '');
-            }
-          },
+  // متحكم التقاط الشاشة (هذا يجب أن يكون في مكان يمكن الوصول إليه من دالة المشاركة)
+  // ونظراً لأن ConsumerWidget ثابت (const), سنعرفه داخل دالة المشاركة مباشرة أو نجعله متغيرًا عاديًا
+  // أو نمرره كـ parameter إذا كان الويدجت stateful.
+  // في هذه الحالة، سنستخدمه مباشرة ضمن دالة التقاط الـ Widget.
+
+  // دالة المشاركة الجديدة
+  Future<void> _shareReport(BuildContext context, WidgetRef ref) async {
+    // عرض مؤشر تحميل
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          "جاري إعداد تقريرك للمشاركة... 🚀",
+          style: GoogleFonts.tajawal(),
         ),
+        duration: const Duration(seconds: 2),
       ),
     );
-  }
 
-  double _getScore(List<TaskModel> tasks, String category) {
-    final categoryTasks = tasks.where((t) => t.category == category).toList();
-    if (categoryTasks.isEmpty) return 2.0;
-    final completed = categoryTasks.where((t) => t.isCompleted).length;
-    return (completed / categoryTasks.length) * 10;
+    // نستخدم ScreenshotController جديد هنا لأنه داخل ConsumerWidget
+    final ScreenshotController tempScreenshotController =
+        ScreenshotController();
+
+    // جلب بيانات التقرير والرتبة مرة واحدة
+    final reportText = ref.read(lifeProvider.notifier).generateWeeklyReport();
+    final userRank = ref.read(userRankProvider).value ?? "مبتدئ طموح 🌱";
+
+    // التقاط لقطة شاشة للويدجت (نستخدم _buildShareableReportCard لإنشاء تصميم نظيف للمشاركة)
+    final imageBytes = await tempScreenshotController.captureFromWidget(
+      Directionality(
+        // مهم جداً لدعم RTL في لقطة الشاشة
+        textDirection: TextDirection.rtl,
+        child: Material(
+          color: Colors.transparent, // مهم لجعل الخلفية شفافة
+          child: _buildShareableReportCard(reportText, userRank),
+        ),
+      ),
+      delay: const Duration(milliseconds: 100), // تأخير بسيط للرسم
+      pixelRatio: 3.0, // جودة أعلى للصورة الملتقطة
+    );
+
+    if (imageBytes != null) {
+      final directory = await getApplicationDocumentsDirectory();
+      final imagePath = await File(
+        '${directory.path}/humaini_report.png',
+      ).create();
+      await imagePath.writeAsBytes(imageBytes);
+
+      // مشاركة الصورة
+      await Share.shareXFiles([
+        XFile(imagePath.path),
+      ], text: "إنجازاتي هذا الأسبوع مع هيوميني! 🌟\n#هيوميني #إنجازاتي");
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "عذراً، حدث خطأ أثناء إعداد التقرير للمشاركة.",
+            style: GoogleFonts.tajawal(),
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(lifeProvider);
-    // ابحث عن Column وأضف هذا السطر بداخله:
-    children:
-    [
-      _buildRadarChart(tasks), // <--- هذا يستدعي الرسم البياني
-      const SizedBox(height: 20),
-      // ... باقي العناصر مثل بطاقة التحليل
-    ];
-    // حساب البيانات الحقيقية من قاعدة البيانات
+    final userRankAsync = ref.watch(userRankProvider); // لمراقبة الرتبة
+
     int total = tasks.length;
     int completed = tasks.where((t) => t.isCompleted).length;
     int remaining = total - completed;
@@ -93,11 +104,22 @@ class StatsDashboard extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // 1. مؤشر الطاقة النفسية والذهنية (Mental Energy)
             _buildEnergyMeter(progress),
             const SizedBox(height: 25),
 
-            // 2. شبكة الإحصائيات السريعة
+            // --- بطاقة التقرير الذكي مع زر المشاركة ---
+            userRankAsync.when(
+              data: (rank) => _buildAIReportCard(ref, rank, context),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(
+                child: Text(
+                  "خطأ: $err",
+                  style: GoogleFonts.tajawal(color: Colors.red),
+                ),
+              ),
+            ),
+            const SizedBox(height: 25),
+
             Row(
               children: [
                 _buildStatCard(
@@ -135,10 +157,179 @@ class StatsDashboard extends ConsumerWidget {
             ),
             const SizedBox(height: 25),
 
-            // 3. تحليل خطة العمل (يومي/أسبوعي/شهري)
             _buildCategoryBreakdown(tasks),
           ],
         ),
+      ),
+    );
+  }
+
+  // --- دالة بناء بطاقة التقرير الذكي (UI الذي يظهر في التطبيق) ---
+  Widget _buildAIReportCard(
+    WidgetRef ref,
+    String userRank,
+    BuildContext context,
+  ) {
+    final reportText = ref.watch(lifeProvider.notifier).generateWeeklyReport();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.deepPurple.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.deepPurple.withOpacity(0.1), width: 2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.psychology,
+                color: Colors.deepPurpleAccent,
+                size: 28,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                "تحليل هيوميني الذكي ✨",
+                style: GoogleFonts.tajawal(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.deepPurple,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            reportText,
+            style: GoogleFonts.tajawal(
+              fontSize: 14,
+              color: Colors.black87,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 15),
+          // عرض رتبة المستخدم
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "رتبتك الحالية: $userRank",
+              style: GoogleFonts.tajawal(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // زر المشاركة
+          Center(
+            child: ElevatedButton.icon(
+              onPressed: () =>
+                  _shareReport(context, ref), // استدعاء دالة المشاركة
+              icon: const Icon(Icons.share, color: Colors.white),
+              label: Text(
+                "شارك إنجازاتك الآن!",
+                style: GoogleFonts.tajawal(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurpleAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- دالة جديدة: تصميم البطاقة التي سيتم التقاط لقطة شاشة لها (للمشاركة فقط) ---
+  // هذه الدالة لا تحتوي على زر المشاركة ولا تتأثر بالـ ref لتكون "نظيفة" للالتقاط
+  Widget _buildShareableReportCard(String reportText, String userRank) {
+    return Container(
+      width: 300, // حجم ثابت للصورة الملتقطة
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white,
+            Colors.deepPurple.shade100,
+          ], // تدرج لوني أفتح للمشاركة
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // مهم لجعل حجم الكارد مناسب للمحتوى
+        children: [
+          Text(
+            "تقـرير هيومـيني الذكـي 🌟",
+            style: GoogleFonts.tajawal(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.deepPurple.shade700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            reportText,
+            style: GoogleFonts.tajawal(
+              fontSize: 13,
+              color: Colors.black87,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 15),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "رتبتك الحالية: $userRank",
+              style: GoogleFonts.tajawal(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple.shade600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // يمكنك إضافة شعار التطبيق هنا
+          Align(
+            alignment: Alignment.center,
+            child: Text(
+              "#HumainiApp",
+              style: GoogleFonts.tajawal(
+                fontSize: 12,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -173,7 +364,6 @@ class StatsDashboard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 25),
-          // الرسم البياني الدائري المخصص
           Stack(
             alignment: Alignment.center,
             children: [
@@ -294,7 +484,7 @@ class StatsDashboard extends ConsumerWidget {
           Expanded(
             flex: 7,
             child: LinearProgressIndicator(
-              value: count / 10,
+              value: count == 0 ? 0 : (count / 10).clamp(0.0, 1.0),
               color: color,
               backgroundColor: Colors.grey[100],
             ),
@@ -305,53 +495,4 @@ class StatsDashboard extends ConsumerWidget {
       ),
     );
   }
-}
-
-Widget _buildRadarChart(List<TaskModel> tasks) {
-  // حساب البيانات للرسم البياني (نسبة الإنجاز لكل فئة)
-  return Container(
-    height: 250,
-    padding: const EdgeInsets.all(10),
-    child: RadarChart(
-      RadarChartData(
-        dataSets: [
-          RadarDataSet(
-            fillColor: Colors.deepPurple.withOpacity(0.4),
-            borderColor: Colors.deepPurple,
-            entryRadius: 3,
-            dataEntries: [
-              RadarEntry(value: _getScore(tasks, 'تطور')),
-              RadarEntry(value: _getScore(tasks, 'التزام')),
-              RadarEntry(value: _getScore(tasks, 'سرعة')),
-              RadarEntry(value: _getScore(tasks, 'تواصل')),
-              RadarEntry(value: _getScore(tasks, 'دقة')),
-            ],
-          ),
-        ],
-        getTitle: (index, angle) {
-          switch (index) {
-            case 0:
-              return RadarChartTitle(text: 'تطور');
-            case 1:
-              return RadarChartTitle(text: 'التزام');
-            case 2:
-              return RadarChartTitle(text: 'سرعة');
-            case 3:
-              return RadarChartTitle(text: 'تواصل');
-            case 4:
-              return RadarChartTitle(text: 'دقة');
-            default:
-              return const RadarChartTitle(text: '');
-          }
-        },
-      ),
-    ),
-  );
-}
-
-double _getScore(List<TaskModel> tasks, String category) {
-  final categoryTasks = tasks.where((t) => t.category == category).toList();
-  if (categoryTasks.isEmpty) return 0.0;
-  final completed = categoryTasks.where((t) => t.isCompleted).length;
-  return (completed / categoryTasks.length) * 10; // مقياس من 10
 }

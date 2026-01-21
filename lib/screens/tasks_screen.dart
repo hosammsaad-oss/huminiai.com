@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/life_provider.dart';
 import 'stats_dashboard.dart';
 import '../services/notification_service.dart'; // تأكد أن المسار يؤدي إلى مجلد services لديك
+
 class TasksScreen extends ConsumerWidget {
   const TasksScreen({super.key});
 
@@ -22,8 +23,13 @@ class TasksScreen extends ConsumerWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text("مخطط الإنجاز",
-              style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: Colors.white)),
+          title: Text(
+            "مخطط الإنجاز",
+            style: GoogleFonts.tajawal(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
           backgroundColor: const Color(0xFF6B4EFF),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: TabBar(
@@ -33,16 +39,15 @@ class TasksScreen extends ConsumerWidget {
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
             tabs: const [
-              Tab(text: "يومية"),
-              Tab(text: "أسبوعية"),
-              Tab(text: "شهرية"),
+              Tab(text: "تطور"),
+              Tab(text: "التزام"),
+              Tab(text: "سرعة"),
+              // يمكنك إضافة "تواصل" و "دقة" إذا أردت تبويبات أكثر
             ],
           ),
         ),
         body: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-          ),
+          decoration: BoxDecoration(color: Colors.grey[50]),
           child: Column(
             children: [
               // --- 1. بطاقة ملخص الإنجاز العلوية (القابلة للضغط) ---
@@ -66,7 +71,7 @@ class TasksScreen extends ConsumerWidget {
                         color: const Color(0xFF6B4EFF).withOpacity(0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
-                      )
+                      ),
                     ],
                   ),
                   child: Row(
@@ -78,15 +83,18 @@ class TasksScreen extends ConsumerWidget {
                           Text(
                             "مستوى الإنجاز العام",
                             style: GoogleFonts.tajawal(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold),
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 5),
                           Text(
                             "اضغط لعرض لوحة القيادة والتحليل 📊",
                             style: GoogleFonts.tajawal(
-                                color: Colors.white70, fontSize: 12),
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -106,12 +114,13 @@ class TasksScreen extends ConsumerWidget {
                           Text(
                             "${(progress * 100).toInt()}%",
                             style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -121,9 +130,9 @@ class TasksScreen extends ConsumerWidget {
               Expanded(
                 child: TabBarView(
                   children: [
-                    _buildTaskCategory(context, ref, tasks, "daily"),
-                    _buildTaskCategory(context, ref, tasks, "weekly"),
-                    _buildTaskCategory(context, ref, tasks, "monthly"),
+                    _buildTaskCategory(context, ref, tasks, "تطور"),
+                    _buildTaskCategory(context, ref, tasks, "التزام"),
+                    _buildTaskCategory(context, ref, tasks, "سرعة"),
                   ],
                 ),
               ),
@@ -150,23 +159,29 @@ class TasksScreen extends ConsumerWidget {
         builder: (context, setState) => Directionality(
           textDirection: TextDirection.rtl,
           child: AlertDialog(
-            title: Text("إضافة مهمة جديدة",
-                style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
+            title: Text(
+              "إضافة مهمة جديدة",
+              style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: controller,
-                  decoration: const InputDecoration(hintText: "ما هي مهمتك القادمة؟"),
+                  decoration: const InputDecoration(
+                    hintText: "ما هي مهمتك القادمة؟",
+                  ),
                 ),
                 const SizedBox(height: 20),
                 DropdownButton<String>(
                   value: selectedCategory,
                   isExpanded: true,
                   items: const [
-                    DropdownMenuItem(value: 'daily', child: Text("يومية")),
-                    DropdownMenuItem(value: 'weekly', child: Text("أسبوعية")),
-                    DropdownMenuItem(value: 'monthly', child: Text("شهرية")),
+                    DropdownMenuItem(value: 'تطور', child: Text("تطور")),
+                    DropdownMenuItem(value: 'التزام', child: Text("التزام")),
+                    DropdownMenuItem(value: 'سرعة', child: Text("سرعة")),
+                    DropdownMenuItem(value: 'تواصل', child: Text("تواصل")),
+                    DropdownMenuItem(value: 'دقة', child: Text("دقة")),
                   ],
                   onChanged: (val) {
                     setState(() {
@@ -183,17 +198,20 @@ class TasksScreen extends ConsumerWidget {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6B4EFF)),
+                  backgroundColor: const Color(0xFF6B4EFF),
+                ),
                 onPressed: () {
                   if (controller.text.isNotEmpty) {
-                    ref.read(lifeProvider.notifier).addTask(
-                          controller.text,
-                          category: selectedCategory,
-                        );
+                    ref
+                        .read(lifeProvider.notifier)
+                        .addTask(controller.text, category: selectedCategory);
                     Navigator.pop(context);
                   }
                 },
-                child: const Text("إضافة", style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  "إضافة",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -204,7 +222,11 @@ class TasksScreen extends ConsumerWidget {
 
   // دالة بناء قائمة المهام لكل قسم
   Widget _buildTaskCategory(
-      BuildContext context, WidgetRef ref, List<TaskModel> tasks, String type) {
+    BuildContext context,
+    WidgetRef ref,
+    List<TaskModel> tasks,
+    String type,
+  ) {
     final filteredTasks = tasks.where((t) => t.category == type).toList();
 
     if (filteredTasks.isEmpty) {
@@ -212,11 +234,16 @@ class TasksScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.assignment_turned_in_outlined,
-                size: 80, color: Colors.grey[300]),
+            Icon(
+              Icons.assignment_turned_in_outlined,
+              size: 80,
+              color: Colors.grey[300],
+            ),
             const SizedBox(height: 10),
-            Text("لا توجد مهام في هذا القسم",
-                style: GoogleFonts.tajawal(color: Colors.grey)),
+            Text(
+              "لا توجد مهام في هذا القسم",
+              style: GoogleFonts.tajawal(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -235,7 +262,10 @@ class TasksScreen extends ConsumerWidget {
             ref.read(lifeProvider.notifier).deleteTask(task.id);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("تم حذف: ${task.title}", style: GoogleFonts.tajawal()),
+                content: Text(
+                  "تم حذف: ${task.title}",
+                  style: GoogleFonts.tajawal(),
+                ),
                 backgroundColor: Colors.redAccent,
               ),
             );
@@ -253,7 +283,9 @@ class TasksScreen extends ConsumerWidget {
           child: Card(
             elevation: 2,
             margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
             child: ListTile(
               leading: Checkbox(
                 value: task.isCompleted,
@@ -265,7 +297,9 @@ class TasksScreen extends ConsumerWidget {
               title: Text(
                 task.title,
                 style: GoogleFonts.tajawal(
-                  decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                  decoration: task.isCompleted
+                      ? TextDecoration.lineThrough
+                      : null,
                   color: task.isCompleted ? Colors.grey : Colors.black87,
                 ),
               ),
@@ -277,4 +311,3 @@ class TasksScreen extends ConsumerWidget {
     );
   }
 }
-

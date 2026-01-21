@@ -4,8 +4,8 @@ class MessageModel {
   final DateTime timestamp;
 
   MessageModel({
-    required this.text, 
-    required this.isUser, 
-    required this.timestamp
+    required this.text,
+    required this.isUser,
+    required this.timestamp,
   });
 }
