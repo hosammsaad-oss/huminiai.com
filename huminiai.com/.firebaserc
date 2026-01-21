@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "production": "huminiai",
+    "default": "humini-ai"
+  },
+  "targets": {},
+  "etags": {}
+}
